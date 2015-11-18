@@ -38,7 +38,8 @@ clean_documents = function(book, stopwords = c()) {
                            control = list(tolower=T,stopwords=T,removePunctuation=T,removeNumbers=T)
                            )
   dtm = removeSparseTerms(dtm, .99)
-  dtm = as.data.frame(as.matrix(dtm))
+  # Let's hold off on this part for now.
+  #dtm = as.data.frame(as.matrix(dtm))
   return(dtm)
 }
 
@@ -80,11 +81,27 @@ system.time({
 rm(docs)
 # Free up unused memory.
 gc()
-save(cleaned_docs, file="data/cleaned-docs.Rdata")
 
 
 ### Tagging - now we need to combine them into a single dataframe.
 
+# This creates our target/response vector as a factor with values of child, history, religion, or science.
+targets = as.factor(unlist(sapply(names(cleaned_docs), simplify="array", USE.NAMES=F,
+                 FUN=function(doc_type){ rep(doc_type, length.out=nrow(as.matrix(cleaned_docs[[doc_type]])))})))
+table(targets)
+length(targets)
+
+# Combine docs into a single dataframe.
+system.time({
+  docs = as.data.frame(as.matrix(do.call(tm:::c.DocumentTermMatrix, cleaned_docs)))
+})
+
+dim(docs)
+# Make sure that the # of rows in the document corpus equals the length of our target vector.
+# Otherwise stop and give an error.
+stopifnot(nrow(docs) == length(targets))
+
+save(docs, targets, file="data/cleaned-docs.Rdata")
 
 # Stop logging.
 sink()
