@@ -108,7 +108,7 @@ stopifnot(nrow(docs) == length(targets))
 save(docs, targets, file="data/cleaned-docs.Rdata")
 
 # Clean up lingering variables.
-rm(index1, index2, result, sample, sample1, sample2, stopwords, child)
+rm(index1, index2, result, sample, sample1, sample2, child)
 
 # Stop logging.
 sink()
