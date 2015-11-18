@@ -78,7 +78,7 @@ system.time({
   }
 })
 
-rm(docs)
+rm(docs, stopwords, type)
 # Free up unused memory.
 gc()
 
@@ -95,6 +95,9 @@ length(targets)
 system.time({
   docs = as.data.frame(as.matrix(do.call(tm:::c.DocumentTermMatrix, cleaned_docs)))
 })
+# Clean up memory.
+rm(cleaned_docs)
+gc()
 
 dim(docs)
 # Make sure that the # of rows in the document corpus equals the length of our target vector.
@@ -102,6 +105,9 @@ dim(docs)
 stopifnot(nrow(docs) == length(targets))
 
 save(docs, targets, file="data/cleaned-docs.Rdata")
+
+# Clean up lingering variables.
+rm(index1, index2, result, sample, sample1, sample2, stopwords, child)
 
 # Stop logging.
 sink()
