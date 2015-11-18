@@ -1,4 +1,13 @@
+# Log the script's output and messages to a text file.
+sink(paste0(gsub("\\.[^.]+$", "", basename(sys.frame(1)$ofile)), ".log"), append=F, split=T)
+cat("Executing:", sys.frame(1)$ofile, "\nDatetime:", date(), "\n")
+
 library(tm)
+
+# Load the docs file if it doesn't already exist.
+if (!exists("docs")) {
+  load("data/imported-text-docs.Rdata")
+}
 
 ################## Exploring docs ##################
 ### docs is a list of 4 groups "child", "history", "religion", "science"
@@ -37,3 +46,7 @@ View(result)
 ### Exclude the common word features (known as stop words) listed in http://www.textfixer.com/resources/common-english-words.txt
 ### Exclude common words
 ### Tagging
+
+
+# Stop logging.
+sink()
