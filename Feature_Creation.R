@@ -62,6 +62,7 @@ stopwords
 # Check if it's the same list as the one used by tm()
 length(stopwords)
 length(stopwords("english"))
+# Nope, these are not the same size.
 
 # Only 70% of the official stopwords are in the tm list, so we'll need to also use this one.
 mean(stopwords %in% stopwords("english"))
