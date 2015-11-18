@@ -28,24 +28,62 @@ sample2 = docs$history[index2]
 sample = c(sample1,sample2)
 
 # Derive a dictionary of words and total number of their appearances through out the whole dataset.
-myfun = function(book){
-  book = tm_map(book,content_transformer(tolower))
-  book = tm_map(book,removeWords,c('project','gutenberg','ebook','title','author','release','chapter'))
+clean_documents = function(book, stopwords = c()) {
+  book = tm_map(book, content_transformer(tolower))
+  book = tm_map(book, removeWords, c('project','gutenberg','ebook','title','author','release','chapter'))
+  if (length(stopwords) > 0) {
+    book  = tm_map(book, removeWords, stopwords)
+  }
   dtm = DocumentTermMatrix(book,
                            control = list(tolower=T,stopwords=T,removePunctuation=T,removeNumbers=T)
                            )
-  dtm = removeSparseTerms(dtm,.99)
+  dtm = removeSparseTerms(dtm, .99)
   dtm = as.data.frame(as.matrix(dtm))
   return(dtm)
 }
 
-result = myfun(sample)
-View(result)
+result = clean_documents(sample)
+# View(result)
 
 
-### Exclude the common word features (known as stop words) listed in http://www.textfixer.com/resources/common-english-words.txt
+### Exclude the common word features (known as stop words) listed in
+# http://www.textfixer.com/resources/common-english-words.txt
+
+# Load the official stopword list and make sure it's the same as the one used by tm.
+file_con = file("inbound/common-english-words.txt")
+# Process it as one line separated by commas, and convert it to a vector.
+stopwords = unlist(strsplit(readLines(file_con)[1], split=c(","), fixed=T))
+save(stopwords, file="data/stopwords.Rdata")
+close(file_con)
+rm(file_con)
+stopwords
+
+# Check if it's the same list as the one used by tm()
+length(stopwords)
+length(stopwords("english"))
+
+# Only 70% of the official stopwords are in the tm list, so we'll need to also use this one.
+mean(stopwords %in% stopwords("english"))
+
 ### Exclude common words
-### Tagging
+
+cleaned_docs = list()
+
+# Time this step because it's slow.
+system.time({
+  for (type in names(docs)) {
+    cat("Cleaning", type, "\n")
+    cleaned_docs[[type]] = clean_documents(docs[[type]], stopwords)
+  }
+})
+
+rm(docs)
+# Free up unused memory.
+gc()
+save(cleaned_docs, file="data/cleaned-docs.Rdata")
+
+
+### Tagging - now we need to combine them into a single dataframe.
 
 
 # Stop logging.
