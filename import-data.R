@@ -28,6 +28,8 @@ system.time({
     cat(paste0("Processed ", type, " in subdir \"", doc_dirs[[type]], "\" and found ", length(docs[[type]]), " documents.\n"))
   }
 })
+
+rm(doc_dirs, type)
 # Docs now contains the large corpus of text documents, coming in at 1.4 GB of memory.
 # It is a list with 4 elements, one for each type of text document.
 
