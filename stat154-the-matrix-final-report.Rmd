@@ -1,0 +1,25 @@
+---
+title: "Stat 154 Final Report"
+author: "The Matrix (team 5): Helen Hu, Chris Kennedy, Dan Kim, Stephanie Kim"
+output: pdf_document
+---
+
+## Description
+
+To be added.
+
+## Feature Creation
+
+To be added.
+
+## Unsupervised Feature Filtering
+
+## Classification of Word Feature Matrix
+
+## Classification of Power Word Feature Matrix
+
+## Classification of Combined Feature Matrix
+
+## Final Model
+
+
