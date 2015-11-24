@@ -20,7 +20,6 @@ system.time({
   word_usage = apply(docs, MARGIN=2, FUN=function(x){ sum(!is.na(x) & x > 0) })
 })
 summary(word_usage)
-# TODO: save plot to a png file.
 hist(word_usage, breaks=30, main="Documents using the word")
 dev.copy(png, "visuals/3-feature-filtering-histogram.png")
 dev.off()
@@ -28,16 +27,16 @@ dev.off()
 # How many words do we have right now?
 ncol(docs)
 
-# Remove words that are used in at least 80% of documents - 11 words.
-cutoff_high = round(nrow(docs) * 0.8)
+# Remove words that are used in at least 70% of documents - 11 words.
+cutoff_high = round(nrow(docs) * 0.7)
 cutoff_high
 sum(word_usage > cutoff_high)
 word_usage[word_usage > cutoff_high]
 # Remove words that are above the cutoff.
 docs = docs[, !colnames(docs) %in% names(word_usage[word_usage > cutoff_high]) ]
 
-# Remove words that are not in at least 25 documents.
-cutoff_low = 25
+# Remove words that are not in at least 200 documents.
+cutoff_low = 200
 sum(word_usage < cutoff_low)
 word_usage[word_usage < cutoff_low]
 # Remove words that are above the cutoff.
@@ -46,12 +45,17 @@ docs = docs[, !colnames(docs) %in% names(word_usage[word_usage < cutoff_low]) ]
 # Update word usage to reflect the revised features.
 word_usage  = word_usage[word_usage >= cutoff_low & word_usage <= cutoff_high]
 summary(word_usage)
+hist(word_usage, breaks=30, main="Documents using the word (pruned)")
+dev.copy(png, "visuals/3-feature-filtering-histogram-pruned.png")
+dev.off()
 
 # Clean up environment.
 rm(cutoff_high, cutoff_low, word_usage)
 
 # Final dimensions.
 dim(docs)
+
+
 
 # Save the result.
 save(docs, targets, file="data/filtered-docs.Rdata")
