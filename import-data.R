@@ -18,13 +18,13 @@ if (length(file_names) == 0) {
 # See helpful guide at https://github.com/rochelleterman/PS239T/blob/master/11_text-analysis/2_Pre-processing.Rmd
 library(tm)
 
-# This takes a while to run - 85-90 seconds on my computer. -CK
+# This takes a while to run -  ~75 seconds on my computer. -CK
 system.time({
   # Recursively load all text files in subdirectories of our main file directory.
   docs = list()
-  doc_dirs = list(child="Child(0)", history="History(1)", religion="Religion(2)", science="Science(3)")
+  doc_dirs = list(child="Child_0", history="History_1", religion="Religion_2", science="Science_3")
   for (type in names(doc_dirs)) {
-    docs[[type]] = Corpus(DirSource(paste0(file_dir, "/", doc_dirs[[type]])))
+    docs[[type]] = Corpus(DirSource(paste0(file_dir, doc_dirs[[type]])))
     cat(paste0("Processed ", type, " in subdir \"", doc_dirs[[type]], "\" and found ", length(docs[[type]]), " documents.\n"))
   }
 })
