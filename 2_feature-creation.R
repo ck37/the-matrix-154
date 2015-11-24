@@ -34,6 +34,8 @@ clean_documents = function(book, stopwords = c()) {
   if (length(stopwords) > 0) {
     book  = tm_map(book, removeWords, stopwords)
   }
+  # NOTE: we should double-check this removePunctuation code, because it may remove the punctation
+  # without substituting spaces, which will mess up the words.
   dtm = DocumentTermMatrix(book,
                            control = list(tolower=T,stopwords=T,removePunctuation=T,removeNumbers=T)
                            )
@@ -98,7 +100,6 @@ system.time({
 })
 # Clean up memory.
 rm(cleaned_docs)
-gc()
 
 dim(docs)
 # Make sure that the # of rows in the document corpus equals the length of our target vector.
@@ -109,6 +110,8 @@ save(docs, targets, file="data/cleaned-docs.Rdata")
 
 # Clean up lingering variables.
 rm(index1, index2, result, sample, sample1, sample2, child)
+
+gc()
 
 # Stop logging.
 sink()
