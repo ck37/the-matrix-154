@@ -3,6 +3,7 @@ sink(paste0(gsub("\\.[^.]+$", "", basename(sys.frame(1)$ofile)), ".log"), append
 cat("Executing:", sys.frame(1)$ofile, "\nDatetime:", date(), "\n")
 
 library(tm)
+library(SnowballC) # for stemming
 
 # Load the docs file if it doesn't already exist.
 if (!exists("docs")) {
@@ -37,8 +38,8 @@ clean_documents = function(book, stopwords = c()) {
   # NOTE: we should double-check this removePunctuation code, because it may remove the punctation
   # without substituting spaces, which will mess up the words.
   dtm = DocumentTermMatrix(book,
-                           control = list(tolower=T,stopwords=T,removePunctuation=T,removeNumbers=T)
-                           )
+    control = list(tolower=T, stopwords=T, removePunctuation=T, removeNumbers=T, stemming=T)
+  )
   dtm = removeSparseTerms(dtm, .99)
   # Let's hold off on this part for now.
   #dtm = as.data.frame(as.matrix(dtm))
