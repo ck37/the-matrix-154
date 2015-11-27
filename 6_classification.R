@@ -142,7 +142,6 @@ save(rf, file="data/models-rf.RData")
 # Final accuracy with the maximum number of trees:
 print(rf$err.rate[nrow(rf$err.rate), ])
 
-# Generate ROC curves
 
 # Plot of error rate with out of bag data.
 plot(rf$err.rate[,1], main="RF accuracy w/ OOB", type = "l", ylab = "Error rate", xlab = "Number of trees")
@@ -160,8 +159,10 @@ p + geom_line() + theme_bw()
 dev.copy(png, "visuals/6-rf-error-rate-per-class.png")
 dev.off()
 
+# Generate ROC curves
+library(ROCR)
 
-
+# TBD.
 
 #########################################
 # SVM part
