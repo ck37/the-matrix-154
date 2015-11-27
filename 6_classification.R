@@ -40,8 +40,8 @@ if (speed == "very fast") {
   mtry_seq = c(5, 10)
   rf_ntree = 25
   cv_folds = 3
-  # Subset to a random 10% of the data.
-  data_subset_ratio = 0.1
+  # Subset to a random 30% of the data.
+  data_subset_ratio = 0.3
 } else if (speed == "medium") {
   mtry_seq = round(sqrt(ncol(data)) * c(0.5, 1, 2))
   rf_ntree = 100
@@ -92,6 +92,7 @@ cv_err = matrix(NA, length(mtry_seq), cv_folds)
 # RF training, based on the code from discussion section 11.
 
 # Loop through different num of predict selected in RF 
+system.time({
 for (j in 1:length(mtry_seq)) {
   cat("Mtry:", mtry_seq[j], "\n")
   # Loop through k-folds
@@ -114,9 +115,11 @@ for (j in 1:length(mtry_seq)) {
   # The second column contains the error rates, so select it and then transpose to save as a row.
   cv_err[j, ] = t(cv_results[, 2])
 }
+})
 
 # Calculate the mean of error of k-fold iterations for each value of parameter(num of predictors)
 err = apply(cv_err, 1, mean)
+err
 
 # Plot
 plot(mtry_seq, err, xlab = "Num of predictors", ylab = "Error rate", main = "Random Forest w/ CV", type = "l")
@@ -130,10 +133,20 @@ best_pred
 # Examine a
 
 # Refit the best parameters to the full dataset and save the result.
+# Save importance also
+rf = randomForest(data[idx, -1], data[idx, 1], mtry = best_pred, ntree = rf_ntree, importance=T)
+varimp = importance(rf)
+# Select the top 30 most important words.
+print(round(varimp[order(varimp[, 5], decreasing=T), ], 2)[1:30, ])
+save(rf, file="data/models-rf.RData")
 
 ############
 # SVM part
 ############
+
+
+############
+# Cleanup
 
 gc()
 
