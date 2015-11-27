@@ -127,11 +127,6 @@ plot(mtry_seq, err, xlab = "Num of predictors", ylab = "Error rate", main = "Ran
 best_pred = mtry_seq[which.min(err)]
 best_pred
 
-# Report overall accuracy and accuracy rates per class.
-# Generate ROC curves
-
-# Examine a
-
 # Refit the best parameters to the full dataset and save the result.
 # Save importance also
 rf = randomForest(data[idx, -1], data[idx, 1], mtry = best_pred, ntree = rf_ntree, importance=T)
@@ -140,9 +135,42 @@ varimp = importance(rf)
 print(round(varimp[order(varimp[, 5], decreasing=T), ], 2)[1:30, ])
 save(rf, file="data/models-rf.RData")
 
-############
+#########################################
+# Review accuracy and generate ROC plots.
+
+# Report overall accuracy and accuracy rates per class using OOB.
+# Final accuracy with the maximum number of trees:
+print(rf$err.rate[nrow(rf$err.rate), ])
+
+# Generate ROC curves
+
+# Plot of error rate with out of bag data.
+plot(rf$err.rate[,1], main="RF accuracy w/ OOB", type = "l", ylab = "Error rate", xlab = "Number of trees")
+dev.copy(png, "visuals/6-rf-error-rate-overall.png")
+dev.off()
+
+library(reshape2)
+errors_combined = melt(rf$err.rate[, -1], id.vars="X")
+names(errors_combined) = c("ntrees", "type", "error_rate")
+
+# Plot of error rate per class by number of trees.
+library(ggplot2)
+p = ggplot(errors_combined, aes(x = ntrees, y = error_rate, colour=type))
+p + geom_line() + theme_bw()
+dev.copy(png, "visuals/6-rf-error-rate-per-class.png")
+dev.off()
+
+
+
+
+#########################################
 # SVM part
 ############
+
+# TBD.
+
+
+
 
 
 ############
