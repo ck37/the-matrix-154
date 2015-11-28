@@ -18,7 +18,7 @@ library(randomForest)
 # Possible speed configurations.
 speed_types = c("very fast", "fast", "medium", "slow", "ideal")
 # Choose which option you want, based on speed vs. accuracy preference.
-speed = speed_types[3]
+speed = speed_types[4]
 
 set.seed(5)
 
@@ -49,16 +49,16 @@ if (speed == "very fast") {
   cv_folds = 4
   data_subset_ratio = 0.5
 } else if (speed == "slow") {
-  mtry_seq = round(sqrt(ncol(data)) * c(0.5, 1, 2))
-  rf_ntree = 400
-  # Again, 8 is a multiple of our 4 cores.
-  cv_folds = 8
-  data_subset_ratio = 1
+  mtry_seq = round(sqrt(ncol(data)) * c(0.5, 1, 2, 4))
+  rf_ntree = 250
+  # We need to do 10 based on the project definition, even though 8 folds would be preferable.
+  cv_folds = 10
+  data_subset_ratio = 0.7
 } else {
   mtry_seq = unique(round(exp(log(ncol(data))*exp(c(-0.96, -0.71, -0.48, -0.4, -0.29, -0.2)))))
   mtry_seq
-  rf_ntree = 2000
-  cv_folds = 8
+  rf_ntree = 500
+  cv_folds = 10
   data_subset_ratio = 1
 }
 
