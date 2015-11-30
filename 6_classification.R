@@ -18,18 +18,19 @@ library(randomForest)
 # Possible speed configurations.
 speed_types = c("very fast", "fast", "medium", "slow", "very slow", "ideal")
 # Choose which option you want, based on speed vs. accuracy preference.
-speed = speed_types[5]
+speed = speed_types[2]
 
 set.seed(5)
 
 if (speed == "very fast") {
   # The fastest possible settings that will yield a result, mainly for debugging purposes.
+  # This should complete in a second or two.
   
   # Subset to a random 5% of the data to speed up execution time.
   data_subset_ratio = 0.05
   
   # Number of predictors to choose.
-  mtry_seq = c(5)
+  mtry_seq = c(5, 10)
   
   # Number of trees to fit for RF.
   rf_ntree = 5
@@ -37,17 +38,17 @@ if (speed == "very fast") {
   # Number of CV folds
   cv_folds = 2                                     
 } else if (speed == "fast") {
-  mtry_seq = c(5, 10)
+  mtry_seq = c(10, 20)
   rf_ntree = 25
   cv_folds = 3
-  # Subset to a random 30% of the data.
-  data_subset_ratio = 0.3
+  # Subset to a random 10% of the data.
+  data_subset_ratio = 0.10
 } else if (speed == "medium") {
   mtry_seq = round(sqrt(ncol(data)) * c(0.5, 1, 2))
-  rf_ntree = 100
+  rf_ntree = 80
   # We use 4 here because we have 4 cores right now.
   cv_folds = 4
-  data_subset_ratio = 0.5
+  data_subset_ratio = 0.3
 } else if (speed == "slow") {
   mtry_seq = round(sqrt(ncol(data)) * c(0.5, 1, 2, 4))
   rf_ntree = 100
@@ -70,7 +71,7 @@ if (speed == "very fast") {
 
 
 ############################################
-# Setup multicore processing to speed of the model training.
+# Setup multicore processing to speed up the model training.
 
 library(doMC)
 cat("Cores detected:", detectCores(), "\n")
@@ -91,55 +92,96 @@ idx = sample(nrow(data), round(nrow(data) * data_subset_ratio))
 # NOTE: this does not use the full dataset size due to rounding, but the impact is minor.
 samples_per_fold = floor(length(idx) / cv_folds)
 
-cv_err = matrix(NA, length(mtry_seq), cv_folds)
+# Save the levels of the target variable for use in the CV loop.
+target_classes = levels(data[, 1])
+table(target_classes)
+
+# Create a hyperparameter training grid to more easily generalize to multiple tuning parameters.
+tune_grid = expand.grid(mtry = mtry_seq)
+
+# Matrix to record the cross-validation error results.
+# Columns are: hyperparameter combination, CV fold number overall error rate, and per-class error rate.
+cv_results = matrix(NA, nrow(tune_grid) * cv_folds, ncol(tune_grid) + length(target_classes) + 2)
 
 
 ############################################
 # RF training, based on the code from discussion section 11.
 
+
 # Loop through different num of predict selected in RF 
 system.time({
-for (j in 1:length(mtry_seq)) {
-  cat("Mtry:", mtry_seq[j], "\n")
-  # Loop through k-folds
+for (j in 1:nrow(tune_grid)) {
+  params = tune_grid[j, ]
+  cat("Mtry:", params[1], "\n")
+  # Loop through k-folds using multicore processing.
   #for (test_fold in 1:cv_folds) {
-  cv_results = foreach (test_fold = 1:cv_folds, .combine="rbind") %dopar% {
+  cv_data = foreach (test_fold = 1:cv_folds, .combine="rbind") %dopar% {
     # idx for validation set
-    val_idx = idx[seq((test_fold - 1) * samples_per_fold + 1, test_fold * samples_per_fold)]
+    validation_rows = seq((test_fold - 1) * samples_per_fold + 1, test_fold * samples_per_fold)
+    val_idx = idx[validation_rows]
     # Validation set.
     val_set = data[val_idx,]
     # Training set - we need to index within idx due to possible subsampling.
-    train_set = data[idx[-val_idx],]
-    rf_cv = randomForest(train_set[, -1], train_set[, 1], mtry = mtry_seq[j], ntree = rf_ntree)
+    train_set = data[idx[-validation_rows],]
+    
+    rf_cv = randomForest(train_set[, -1], train_set[, 1], mtry = params[1], ntree = rf_ntree)
+    
     cv_pred = predict(rf_cv, newdata = val_set[,-1])
-    # Percentage of test observations predicted incorrectly.
-    err = mean(cv_pred != val_set[, 1])
-    data.frame(cbind(test_fold, err))
+    
+    # Overall error: percentage of test observations predicted incorrectly.
+    error_rate = mean(cv_pred != val_set[, 1])
+    
+    # Calculate the per-class error rates.
+    per_class_error_rate = sapply(target_classes, FUN=function(class) {
+      mean(cv_pred[ val_set[, 1] == class] != class)
+    })
+    names(per_class_error_rate) = paste0("error_", names(per_class_error_rate))
+    
+    data.frame(cbind(mtry=params, test_fold, error_rate, t(per_class_error_rate)))
   }
   # Could re-order by the fold number, but doesn't actually matter.
   # cv_results = cv_results[order(cv_results[, 1]), ]
-  # The second column contains the error rates, so select it and then transpose to save as a row.
-  cv_err[j, ] = t(cv_results[, 2])
+  
+  # Save overall error rate and per-class error rates in a long data frame format.
+  # Use this formula to save the k CV results in the correct rows.
+  cv_results[((j-1)*cv_folds + 1):(j*cv_folds), ] = as.matrix(cv_data)
 }
 })
+colnames(cv_results) = colnames(cv_data)
 
-# Calculate the mean of error of k-fold iterations for each value of parameter(num of predictors)
-err = apply(cv_err, 1, mean)
-err
+# Convert from a matrix to a dataframe so that we can reshape the results.
+cv_results = as.data.frame(cv_results)
+
+library(dplyr)
+
+# Calculate the mean & sd error rate for each combination of hyperparameters.
+# Do.call is used so that we can group by the column names in the tuning grid.
+# as.name converts the column names from strings to R variable names.
+grid_results = as.data.frame(do.call(group_by, list(cv_results[, 1:(ncol(tune_grid) + 2)], as.name(colnames(tune_grid)))) %>% summarise(mean_error_rate = mean(error_rate), error_sd=sd(error_rate)))
+
+grid_results
 
 # Plot
-plot(mtry_seq, err, xlab = "Num of predictors", ylab = "Error rate", main = "Random Forest w/ CV", type = "l")
-# Best num of pred
-best_pred = mtry_seq[which.min(err)]
+plot(grid_results[, 1], grid_results$mean_error_rate, xlab = "Number of predictors (mtry)", ylab = "Cross-validated error rate",
+     main = "Cross-validated Random Forest", type = "l")
+
+# Find the hyperparameter combination with the minimum error rate.
+best_params = grid_results[which.min(grid_results$mean_error_rate), ] 
+
+# Best number of predictors (mtry).
+# NOTE: we don't handle the case where multiple params are the best, so if that happens we'll need to fix this part.
+best_pred = best_params[, 1]
 best_pred
 
-# Refit the best parameters to the full dataset and save the result.
+# Refit the best parameters to the full (non-CV) dataset and save the result.
+# NOTE: if using a subset of the data, it will only retrain on that subset.
 # Save importance also
 rf = randomForest(data[idx, -1], data[idx, 1], mtry = best_pred, ntree = rf_ntree, importance=T)
 varimp = importance(rf)
 # Select the top 30 most important words.
 print(round(varimp[order(varimp[, 5], decreasing=T), ], 2)[1:30, ])
-save(rf, file="data/models-rf.RData")
+# Save the full model as well as the cross-validation results.
+save(rf, cv_results, grid_results, file="data/models-rf.RData")
 
 #########################################
 # Review accuracy and generate ROC plots.
