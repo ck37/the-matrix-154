@@ -21,7 +21,7 @@ library(randomForest)
 # Possible speed configurations.
 speed_types = c("instant", "fast", "medium", "slow", "very slow", "ideal")
 # Choose which option you want, based on speed vs. accuracy preference.
-speed = speed_types[3]
+speed = speed_types[4]
 cat("Speed configuration:", speed, "\n")
 
 set.seed(5)
@@ -56,15 +56,15 @@ if (speed == "instant") {
   cv_folds = 4
   data_subset_ratio = 0.25
 } else if (speed == "slow") {
-  # This configuration should take about 3 hours.
+  # This configuration should take about 6 hours.
   mtry_seq = round(sqrt(ncol(data)) * c(1, 2, 4))
   rf_ntree = 100
   # We need to do 10 based on the project definition, even though 8 folds would be preferable.
   cv_folds = 10
   data_subset_ratio = 0.5
 } else if (speed == "very slow") {
-  # This configuration should take about 12 hours.
-  mtry_seq = round(sqrt(ncol(data)) * c(2, 4))
+  # This configuration should take about 16 hours.
+  mtry_seq = round(sqrt(ncol(data)) * c(4, 8))
   rf_ntree = 200
   # We need to do 10 based on the project definition, even though 8 folds would be preferable.
   cv_folds = 10
