@@ -64,7 +64,7 @@ if (speed == "instant") {
   data_subset_ratio = 0.5
 } else if (speed == "very slow") {
   # This configuration should take about 12 hours.
-  mtry_seq = round(sqrt(ncol(data)) * c(0.5, 1, 2, 4))
+  mtry_seq = round(sqrt(ncol(data)) * c(2, 4))
   rf_ntree = 200
   # We need to do 10 based on the project definition, even though 8 folds would be preferable.
   cv_folds = 10
@@ -182,15 +182,47 @@ best_params = grid_results[which.min(grid_results$mean_error_rate), ]
 best_pred = best_params[, 1]
 best_pred
 
+
+
 # Refit the best parameters to the full (non-CV) dataset and save the result.
 # NOTE: if using a subset of the data, it will only retrain on that subset.
-# Save importance also
+# Save importance also.
+library(caret)
 rf = randomForest(data[idx, -1], data[idx, 1], mtry = best_pred, ntree = rf_ntree, importance=T)
 varimp = importance(rf)
+
+# TODO: attemp to use parRF here so that we can use multiple cores.
+# This part is not working right now.
+# control_rf = trainControl(method="none", number=1, repeats=1, returnData = F, classProbs = T, allowParallel = F)
+# model = train(data[idx, -1], data[idx, 1], method="parRF", tuneGrid = expand.grid(mtry = best_pred),
+#   ntree = rf_ntree, importance=T)
+
 # Select the top 30 most important words.
-print(round(varimp[order(varimp[, 5], decreasing=T), ], 2)[1:30, ])
-# Save the full model as well as the cross-validation results.
-save(rf, cv_results, grid_results, file="data/models-rf.RData")
+print(round(varimp[order(varimp[, "MeanDecreaseAccuracy"], decreasing=T), ], 2)[1:30, ])
+
+# Predict separately on holdout sample if using a subset for training and report holdout sample error.
+
+# Define test_results in case we already used all data in cross-validation.
+test_results = NA
+if (data_subset_ratio != 1) {
+  pred = predict(rf, newdata = data[-idx, -1])
+  
+  # Overall error: percentage of test observations predicted incorrectly.
+  error_rate = mean(pred != data[-idx, 1])
+  
+  # Calculate the per-class error rates.
+  per_class_error_rate = sapply(target_classes, FUN=function(class) {
+    mean(pred[ data[-idx, 1] == class] != class)
+  })
+  names(per_class_error_rate) = paste0("error_", names(per_class_error_rate))
+  
+  test_results = data.frame(cbind(error_rate, t(per_class_error_rate)))
+  print(test_results)
+}
+
+# Save the full model as well as the cross-validation and test-set results.
+save(rf, cv_results, grid_results, test_results, file="data/models-rf.RData")
+
 
 #########################################
 # Review accuracy and generate ROC plots.
