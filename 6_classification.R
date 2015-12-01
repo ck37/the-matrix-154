@@ -42,7 +42,7 @@ if (speed == "instant") {
   # Number of CV folds
   cv_folds = 2                                     
 } else if (speed == "fast") {
-  # This configuration takes about a minute.
+  # This configuration takes about two minutes.
   mtry_seq = c(10, 20)
   rf_ntree = 25
   cv_folds = 3
@@ -70,7 +70,7 @@ if (speed == "instant") {
   cv_folds = 10
   data_subset_ratio = 0.7
 } else {
-  # Unclear how long this would take to complete.
+  # Unclear how long this would take to complete, but we would want to use Amazon EC2 to run (or Savio).
   mtry_seq = unique(round(exp(log(ncol(data))*exp(c(-0.96, -0.71, -0.48, -0.4, -0.29, -0.2)))))
   mtry_seq
   rf_ntree = 500
