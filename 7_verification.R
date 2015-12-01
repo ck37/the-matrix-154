@@ -7,6 +7,8 @@ script_timer = proc.time()
 
 # --- End prelude.
 #########################################
+
+
 # Load our main functions.
 source("function_library.R")
 
@@ -19,12 +21,16 @@ imported_docs = import_text_documents("inbound/Practice")
 results = clean_imported_documents(imported_docs, load_stopwords())
 docs = results$docs
 
+# Re-sort documents by converting filename to an ID.
+docs$id = as.numeric(rownames(docs))
+# Reorder documents by ascending order of filename, so that it's 0 - 101.
+docs = docs[order(docs$id), ]
 
 # Load RF model.
 load("data/models-rf.RData")
 
 # Ensure that word features are the same between the two corpuses.
-# Initialize all features to 1.
+# Initialize all features to 0.
 new_docs = as.data.frame(matrix(0, nrow=nrow(docs), ncol=ncol(training_docs)))
 colnames(new_docs)  = colnames(training_docs)
 # Copy the old columns into the new word feature matrix.
@@ -38,6 +44,7 @@ for (feature in features_to_copy) {
 # If this stops with an error then we need to fix the script.
 stopifnot(sum(!colnames(training_docs) %in% colnames(new_docs)) == 0)
 
+
 # Predict class using RF matrix.
 predictions = predict(rf, new_docs)
 table(predictions)
@@ -49,13 +56,15 @@ table(predictions, predictions_int)
 # TODO: need to be using an id field here; need to modify the import/cleaning process to create that based on filename.
 
 # Generate csv export.
-write.table(predictions_int, file="exports/verification-export.csv", row.names=F, quote=F, col.names=F, sep=",")
+write.table(cbind(docs$id, predictions_int), file="exports/verification-export.csv", row.names=F, quote=F, col.names=F, sep=",")
 
 # Load practice labels and check accuracy.
 labels = read.csv("inbound/Practice_label.csv")
 cat("Accuracy on the verification set:\n")
 print(mean(predictions_int == labels$category))
 table(predictions_int, labels$category)
+
+
 
 #########################################
 # Cleanup
