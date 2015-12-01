@@ -100,6 +100,9 @@ clean_imported_documents = function(docs, stopwords = c()) {
     docs = as.data.frame(as.matrix(do.call(tm:::c.DocumentTermMatrix, cleaned_docs)))
   })
   
+  # Fix rownames - remove the .txt suffix from the name.
+  rownames(docs) = gsub("(.*)\\.txt$", "\\1", rownames(docs))
+  
   # Make sure that the # of rows in the document corpus equals the length of our target vector.
   # Otherwise stop and give an error.
   if (length(targets) > 1 || !is.na(targets)) {
