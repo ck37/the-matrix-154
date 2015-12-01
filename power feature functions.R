@@ -23,3 +23,4 @@ return(r)               # returns the vector of average word length of each txt 
 ############################
 
 
+df
