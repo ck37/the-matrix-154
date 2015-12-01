@@ -7,6 +7,8 @@ load("~/Desktop/154/data/imported-text-docs.Rdata")
 sample = docs$child[1:3]
 n = length(sample)
 
+tm_map(sample[1], sent_detect)
+
 power = function(doc){
   n = length(doc)
   power = matrix(NA,nrow=n,ncol=3,dimnames=list(seq(1,n)))
@@ -16,16 +18,8 @@ power = function(doc){
     book = tm_map(book, stripWhitespace)
     book = tm_map(book, stemDocument)
     book = tm_map(book, removePunctuation)
+    ########## how to read in actual text file
     text = as.character(book)
-  
-    ### 1.average word length
-    split = strsplit(text,"\\s+")[1]
-    len = sapply(split,nchar)
-    power1 = mean(len)
-  
-    ### 2.# of unique words used
-    uniq = sapply(split,unique)
-    power2 = length(uniq)
   
     ### 3.# of 4-digit number
     fourdigit = str_extract(text, "\\d{4}")
@@ -60,4 +54,30 @@ power_feature = list()
 for (type in names(docs)) {
   power_feature[[type]] = power(docs[[type]])
 }
+
+##############################
+library(openNLP)
+require(NLP)
+library(tm)
+
+convert_text_to_sentences <- function(text, lang = "en") {
+  # Function to compute sentence annotations using the Apache OpenNLP Maxent sentence
+  # detector employing the default model for language 'en'.
+  sentence_token_annotator <- Maxent_Sent_Token_Annotator(language = lang)
+  # Convert text to class String from package NLP
+  text <- as.String(text)
+  # Sentence boundaries in text
+  sentence.boundaries <- annotate(text, sentence_token_annotator)
+  # Extract sentences
+  sentences <- text[sentence.boundaries]
+  # return sentences
+  return(sentences)
+}
+
+sent = convert_text_to_sentences(sample[1])
+
+tm_map(sample[1],sent_detect)
+
+
+
 
