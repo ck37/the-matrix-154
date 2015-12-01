@@ -102,7 +102,7 @@ clean_imported_documents = function(docs, stopwords = c()) {
   
   # Make sure that the # of rows in the document corpus equals the length of our target vector.
   # Otherwise stop and give an error.
-  if (!is.na(targets)) {
+  if (length(targets) > 1 || !is.na(targets)) {
     stopifnot(nrow(docs) == length(targets))
   }
   
