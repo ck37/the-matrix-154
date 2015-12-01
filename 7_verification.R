@@ -54,7 +54,7 @@ predictions_int = as.numeric(factor(predictions)) - 1
 table(predictions, predictions_int)
 
 # Generate csv export.
-write.table(cbind(docs$id, predictions_int), file="exports/verification-export.csv", row.names=F, quote=F, col.names=F, sep=",")
+write.table(cbind(id=docs$id, category=predictions_int), file="exports/verification-export.csv", row.names=F, quote=F, col.names=T, sep=",")
 
 # Load practice labels and check accuracy.
 labels = read.csv("inbound/Practice_label.csv")
