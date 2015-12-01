@@ -53,8 +53,6 @@ table(predictions)
 predictions_int = as.numeric(factor(predictions)) - 1
 table(predictions, predictions_int)
 
-# TODO: need to be using an id field here; need to modify the import/cleaning process to create that based on filename.
-
 # Generate csv export.
 write.table(cbind(docs$id, predictions_int), file="exports/verification-export.csv", row.names=F, quote=F, col.names=F, sep=",")
 
