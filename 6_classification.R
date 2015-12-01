@@ -187,7 +187,7 @@ best_pred
 # Refit the best parameters to the full (non-CV) dataset and save the result.
 # NOTE: if using a subset of the data, it will only retrain on that subset.
 # Save importance also.
-library(caret)
+# library(caret)
 rf = randomForest(data[idx, -1], data[idx, 1], mtry = best_pred, ntree = rf_ntree, importance=T)
 varimp = importance(rf)
 
