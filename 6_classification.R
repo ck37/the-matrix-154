@@ -2,6 +2,9 @@
 sink(paste0(gsub("\\.[^.]+$", "", basename(sys.frame(1)$ofile)), ".log"), append=F, split=T)
 cat("Executing:", sys.frame(1)$ofile, "\nDatetime:", date(), "\n")
 
+# Start timing the script.
+script_timer = proc.time()
+
 # Load the docs file if it doesn't already exist.
 if (!exists("data", inherits=F)) {
   load("data/filtered-docs.Rdata")
@@ -16,13 +19,14 @@ library(randomForest)
 # Customize training parameters for slow vs. fast execution.
 
 # Possible speed configurations.
-speed_types = c("very fast", "fast", "medium", "slow", "very slow", "ideal")
+speed_types = c("instant", "fast", "medium", "slow", "very slow", "ideal")
 # Choose which option you want, based on speed vs. accuracy preference.
-speed = speed_types[2]
+speed = speed_types[3]
+cat("Speed configuration:", speed, "\n")
 
 set.seed(5)
 
-if (speed == "very fast") {
+if (speed == "instant") {
   # The fastest possible settings that will yield a result, mainly for debugging purposes.
   # This should complete in a second or two.
   
@@ -38,30 +42,35 @@ if (speed == "very fast") {
   # Number of CV folds
   cv_folds = 2                                     
 } else if (speed == "fast") {
+  # This configuration takes about a minute.
   mtry_seq = c(10, 20)
   rf_ntree = 25
   cv_folds = 3
   # Subset to a random 10% of the data.
   data_subset_ratio = 0.10
 } else if (speed == "medium") {
+  # This configuration takes about 30 minutes.
   mtry_seq = round(sqrt(ncol(data)) * c(0.5, 1, 2))
-  rf_ntree = 80
+  rf_ntree = 60
   # We use 4 here because we have 4 cores right now.
   cv_folds = 4
-  data_subset_ratio = 0.3
+  data_subset_ratio = 0.25
 } else if (speed == "slow") {
-  mtry_seq = round(sqrt(ncol(data)) * c(0.5, 1, 2, 4))
+  # This configuration should take about 3 hours.
+  mtry_seq = round(sqrt(ncol(data)) * c(1, 2, 4))
   rf_ntree = 100
   # We need to do 10 based on the project definition, even though 8 folds would be preferable.
   cv_folds = 10
   data_subset_ratio = 0.5
 } else if (speed == "very slow") {
+  # This configuration should take about 12 hours.
   mtry_seq = round(sqrt(ncol(data)) * c(0.5, 1, 2, 4))
   rf_ntree = 200
   # We need to do 10 based on the project definition, even though 8 folds would be preferable.
   cv_folds = 10
   data_subset_ratio = 0.7
 } else {
+  # Unclear how long this would take to complete.
   mtry_seq = unique(round(exp(log(ncol(data))*exp(c(-0.96, -0.71, -0.48, -0.4, -0.29, -0.2)))))
   mtry_seq
   rf_ntree = 500
@@ -191,8 +200,8 @@ save(rf, cv_results, grid_results, file="data/models-rf.RData")
 print(rf$err.rate[nrow(rf$err.rate), ])
 
 
-# Plot of error rate with out of bag data.
-plot(rf$err.rate[,1], main="RF accuracy w/ OOB", type = "l", ylab = "Error rate", xlab = "Number of trees")
+# Plot of error rate across ntrees with out of bag data.
+plot(rf$err.rate[,1], main="RF accuracy using OOB data", type = "l", ylab = "Error rate", xlab = "Number of trees")
 dev.copy(png, "visuals/6-rf-error-rate-overall.png")
 dev.off()
 
@@ -226,6 +235,13 @@ library(ROCR)
 # Cleanup
 
 gc()
+
+# Review script execution time.
+if (exists("script_timer")) {
+  cat("Script execution time:\n")
+  print(proc.time() - script_timer)
+  rm(script_timer)
+}
 
 # Stop logging.
 sink()
