@@ -187,7 +187,7 @@ best_pred
 # Refit the best parameters to the full (non-CV) dataset and save the result.
 # NOTE: if using a subset of the data, it will only retrain on that subset.
 # Save importance also.
-library(caret)
+# library(caret)
 rf = randomForest(data[idx, -1], data[idx, 1], mtry = best_pred, ntree = rf_ntree, importance=T)
 varimp = importance(rf)
 
@@ -248,8 +248,21 @@ p + geom_line() + theme_bw()
 dev.copy(png, "visuals/6-rf-error-rate-per-class.png")
 dev.off()
 
+# CK 11/30: Skip for now! Unclear how this would work in a multiclass setting and seems to be optional.
+
 # Generate ROC curves
-library(ROCR)
+# See assignment3_solution.R and assignment4_5.R
+#library(ROCR)
+
+# Predict on holdout set if the data_subset ratio was < 1.
+#if (data_subset_ratio < 1) {
+  # Need to iterate over pairwise comparison of classes. 
+#  library(ri)
+  # Need all permutations with two true values.
+#  pairs = c(T, T, F, F)
+  # Each permutation is a column in this resulting matrix.
+#  pairwise_comparisons = genperms(pairs)
+#}
 
 # TBD.
 
