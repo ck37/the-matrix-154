@@ -36,7 +36,7 @@ distinct.words = function(docs){
   r[i] = total
     
   }
-  return(r)
+  return(r)   #returns the vector showing how many distinct words used in each file
 }
 
 #####################    
@@ -51,7 +51,7 @@ total.words = function(docs){
     r[i] = total  
       
   }
-  return(r)  #returns vector of length 22308 with total words used
+  return(r)  #returns the vector of length 22308 with total words used
 }
 
 #########################
@@ -59,22 +59,20 @@ total.words = function(docs){
 #########################
 total.char = function(docs){
   
+  r = numeric()
+  c = numeric()
+  
   for(i in 1:length(docs[ ,1])){    
     
-    total = 0
     for(j in 1:length(docs[1, ])){    
       
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+      c[j] = nchar(colnames(docs[j])) * docs[i,j]
+      
+    }
+    r[i] = sum(c)
+  }
+  return(r)     #returns the vector of length 22308 each row showing # of characters used in each file
 }
+
+
+
