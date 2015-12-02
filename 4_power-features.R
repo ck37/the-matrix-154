@@ -17,11 +17,12 @@ library(openNLP)
 library(NLP)
 library(qdap)
 library(dplyr)
+library(foreach)
 
 # Remember to load the .Rproj file in Rstudio so that paths are relative to the project directory.
 load("data/imported-text-docs.Rdata")
 
-load("function_library.R")
+source("function_library.R")
 
 # Change to true to run the sample code, or just execute the lines manually.
 if (F) {
@@ -35,16 +36,29 @@ if (F) {
 
 power_features = list()
 
-# TODO: use foreach here so that it can be run on multiple cores.
-for (type in names(docs)) {
-  power_features[[type]] = power_features_sentence(docs[[type]])
+# Setup multicore processing to speed up the processing.
+library(doMC)
+cat("Cores detected:", detectCores(), "\n")
+if (exists("conf")) {
+  registerDoMC(conf$num_cores)
+} else {
+  # Uses half of the available cores by default, which is a good default setting.
+  registerDoMC()
+}
+getDoParWorkers()
+
+# Use foreach here so that it can be run on multiple cores.
+power_features = foreach(type = names(docs)) %do% {
+  cat("Processing", type, "\n")
+  #power_features[[type]] = power_features_sentence(docs[[type]])
+  power_features_sentence(docs[[type]])
 }
 
 # TODO: convert current docs list to a dataframe.
 
 # TODO: run the dtm power features on that dataframe.
 
-save(power_features, file="data/power-features-sentence.RData")
+save(power_features, file="data/power-features.RData")
 
 #merge(d, e, by=0, all=TRUE) 
 
