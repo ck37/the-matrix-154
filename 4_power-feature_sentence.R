@@ -9,10 +9,10 @@ library(dplyr)
 
 load("~/Desktop/154/data/imported-text-docs.Rdata")
 
+### sample data to play with
 sample = docs$child[1:3]
-#n = length(sample)
-#t = as.data.frame(sample[1])[2]
 
+### external function(1): convert_text_to_sentences
 convert_text_to_sentences <- function(text, lang = "en") {
   sentence_token_annotator <- Maxent_Sent_Token_Annotator(language = lang)
   text <- as.String(text)
@@ -20,12 +20,13 @@ convert_text_to_sentences <- function(text, lang = "en") {
   sentences <- text[sentence.boundaries]
   return(sentences)
 }
-#sent = convert_text_to_sentences(t)
 
+### external function(2): removes punctuations
 removepunc = function(x){
   gsub("[[:punct:]]", "", x)
 }
 
+### main function: generates sentence-based power feature matrix
 power = function(doc){
   n = length(doc)
   power = matrix(NA,nrow=n,ncol=4,dimnames=list(seq(1,n)))
@@ -35,7 +36,7 @@ power = function(doc){
     book2 = tm_map(book, content_transformer(tolower))
     book3 = tm_map(book2, stripWhitespace)
     book4 = tm_map(book2, stemDocument)
-    ########## how to read in actual text file
+
     text = as.data.frame(book4)[2]
     sents = convert_text_to_sentences(text)
     sents2 = lapply(sents,removepunc)
@@ -51,6 +52,8 @@ power = function(doc){
 
     ### number of digits
     power4 = sum(grepl("[[:digit:]]", sents2))
+    
+    ### 
   
     title = names(book)
     power[i,] = as.matrix(cbind(power1,power2,power3,power4))
@@ -60,7 +63,8 @@ power = function(doc){
   return(power)
 }
 
-power(sample)
+sample_result = as.data.frame(power(sample))
+
 
 power_feature = list()
 
@@ -68,5 +72,5 @@ for (type in names(docs)) {
   power_feature[[type]] = power(docs[[type]])
 }
 
-
+#merge(d, e, by=0, all=TRUE) 
 
