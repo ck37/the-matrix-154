@@ -46,8 +46,7 @@ total.words = function(docs){
   
   for(i in 1:length(docs[ ,1])){    
     
-    total = 0
-    total = total + sum(docs[i, ])
+    total = sum(docs[i, ])
     r[i] = total  
       
   }
