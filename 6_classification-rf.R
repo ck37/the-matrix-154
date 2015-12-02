@@ -127,13 +127,14 @@ cv_results = matrix(NA, nrow(tune_grid) * cv_folds, ncol(tune_grid) + length(tar
 
 # Loop through different num of predict selected in RF 
 system.time({
+  # TODO: foreach over the combination of folds and parameter combinations to better use
+  # high-core count systems (e.g. EC2).
 for (j in 1:nrow(tune_grid)) {
   params = tune_grid[j, ]
   cat("Mtry:", params[1], "\n")
   # Loop through k-folds using multicore processing.
   #for (test_fold in 1:cv_folds) {
-  # Set inorder to F to improve performance, since order is not important here.
-  cv_data = foreach (test_fold = 1:cv_folds, .combine="rbind", .inorder=F) %dopar% {
+  cv_data = foreach (test_fold = 1:cv_folds, .combine="rbind") %dopar% {
     # idx for validation set
     validation_rows = seq((test_fold - 1) * samples_per_fold + 1, test_fold * samples_per_fold)
     val_idx = idx[validation_rows]
