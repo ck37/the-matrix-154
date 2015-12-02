@@ -1,77 +1,46 @@
-#######################
-# average word length # 
-#######################
-ave.word.length = function(docs){
- 
-  r = numeric()
+power_dtm = function(dtm){
+  ### power1: returns the vector of average word length of each txt file
+  power1 = numeric()
   c = numeric()
-  
-  for(i in 1:length(docs[ ,1])){    
-    
-    for(j in 1:length(docs[1, ])){    
-        
-      c[j] = nchar(colnames(docs[j])) * docs[i,j]
-      
+  for(i in 1:length(dtm[ ,1])){    
+    for(j in 1:length(dtm[1, ])){    
+      c[j] = nchar(colnames(dtm[j])) * dtm[i,j]
     }
-    r[i] = sum(c)/ sum(docs[i, ])
+    power1[i] = sum(c)/ sum(dtm[i, ])
   }
-return(r)               # returns the vector of average word length of each txt file
-}
-
-############################
-# number of distinct words #
-############################
-
-distinct.words = function(docs){
   
-  for(i in 1:length(docs[ ,1])){    
-    
+  ### power2: returns the vector showing how many distinct words used in each file
+  power2 = numeric()
+  for(i in 1:length(dtm[ ,1])){    
     total = 0
-    for(j in 1:length(docs[1, ])){
-      if(docs[i,j] >= 1){
+    for(j in 1:length(dtm[1, ])){
+      if(dtm[i,j] >= 1){
         total = total + 1
       }  
     }
-    
-  r[i] = total
-    
+    power2[i] = total
   }
-  return(r)   #returns the vector showing how many distinct words used in each file
-}
-
-#####################    
-# total # of words ##
-#####################
-total.words = function(docs){
   
-  for(i in 1:length(docs[ ,1])){    
-    
-    total = sum(docs[i, ])
-    r[i] = total  
-      
+  ### power3: total # of words
+  power3 = numeric()
+  for(i in 1:length(dtm[ ,1])){    
+    total = sum(dtm[i, ])
+    power3[i] = total  
   }
-  return(r)  #returns the vector of length 22308 with total words used
-}
-
-#########################
-# total # of characters #
-#########################
-total.char = function(docs){
   
-  r = numeric()
-  c = numeric()
-  
-  for(i in 1:length(docs[ ,1])){    
-    
-    for(j in 1:length(docs[1, ])){    
-      
-      c[j] = nchar(colnames(docs[j])) * docs[i,j]
-      
+  ### power4: total # of characters
+  power4 = numeric()
+  c2 = numeric()
+  for(i in 1:length(dtm[ ,1])){    
+    for(j in 1:length(dtm[1, ])){    
+      c2[j] = nchar(colnames(dtm[j])) * dtm[i,j]
     }
-    r[i] = sum(c)
+    power4[i] = sum(c2)
   }
-  return(r)     #returns the vector of length 22308 each row showing # of characters used in each file
+  dtm$power1 = power1
+  dtm$power2 = power2
+  dtm$power3 = power3
+  dtm$power4 = power4
+  return(dtm)
 }
-
-
 

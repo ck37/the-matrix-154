@@ -63,6 +63,8 @@ power = function(doc){
   return(power)
 }
 
+power(step1[1])
+
 sample_result = as.data.frame(power(sample))
 
 
