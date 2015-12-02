@@ -27,7 +27,7 @@ if (!exists("data", inherits=F)) {
 # Possible speed configurations.
 speed_types = c("instant", "fast", "medium", "slow", "very slow", "ideal")
 # Choose which option you want, based on speed vs. accuracy preference.
-speed = speed_types[4]
+speed = speed_types[2]
 cat("Speed configuration:", speed, "\n")
 
 set.seed(5)
@@ -35,6 +35,9 @@ set.seed(5)
 if (speed == "instant") {
   # The fastest possible settings that will yield a result, mainly for debugging purposes.
   # This should complete in a second or two.
+  
+  ###
+  # General Parameters
   
   # Subset to a random 5% of the data to speed up execution time.
   data_subset_ratio = 0.05
@@ -54,44 +57,62 @@ if (speed == "instant") {
   ####
   # SVM Parameters
   
-  svm_cost =  cost=c(0.01, 0.1, 1, 5, 10)
-  #svm_cost =  cost=c(0.01, 0.1, 1, 5, 10)
+  svm_cost_seq = c(1, 10, 100)
   
 } else if (speed == "fast") {
   # This configuration takes about two minutes.
-  mtry_seq = c(10, 20)
-  rf_ntree = 25
   cv_folds = 3
   # Subset to a random 10% of the data.
   data_subset_ratio = 0.10
+  
+  mtry_seq = c(10, 20)
+  rf_ntree = 25
+  
+  svm_cost_seq = c(1, 10)
 } else if (speed == "medium") {
   # This configuration takes about 30 minutes.
-  mtry_seq = round(sqrt(ncol(data)) * c(0.5, 1, 2))
-  rf_ntree = 60
+  
   # We use 4 here because we have 4 cores right now.
   cv_folds = 4
   data_subset_ratio = 0.25
+  
+  mtry_seq = round(sqrt(ncol(data)) * c(0.5, 1, 2))
+  rf_ntree = 60
+  
+  #svm_cost_seq = c(0.01, 0.1, 1, 5, 10)
+  svm_cost_seq = c(5, 10, 100)
 } else if (speed == "slow") {
   # This configuration should take about 6 hours.
-  mtry_seq = round(sqrt(ncol(data)) * c(1, 2, 4))
-  rf_ntree = 100
+  
   # We need to do 10 based on the project definition, even though 8 folds would be preferable.
   cv_folds = 10
   data_subset_ratio = 0.5
+  
+  mtry_seq = round(sqrt(ncol(data)) * c(1, 2, 4))
+  rf_ntree = 100
+  
+  svm_cost_seq = c(5, 10, 100)
 } else if (speed == "very slow") {
   # This configuration should take about 16 hours.
-  mtry_seq = round(sqrt(ncol(data)) * c(4, 8))
-  rf_ntree = 200
   # We need to do 10 based on the project definition, even though 8 folds would be preferable.
   cv_folds = 10
   data_subset_ratio = 0.7
+  
+  mtry_seq = round(sqrt(ncol(data)) * c(4, 8))
+  rf_ntree = 200
+  
+  svm_cost_seq = c(1, 5, 10)
 } else {
   # Unclear how long this would take to complete, but we would want to use Amazon EC2 to run (or Savio).
+  
+  cv_folds = 10
+  data_subset_ratio = 0.9
+  
   mtry_seq = unique(round(exp(log(ncol(data))*exp(c(-0.96, -0.71, -0.48, -0.4, -0.29, -0.2)))))
   mtry_seq
   rf_ntree = 500
-  cv_folds = 10
-  data_subset_ratio = 0.9
+  
+  svm_cost_seq = c(1, 5, 10)
 }
 
 
@@ -123,7 +144,7 @@ table(target_classes)
 
 
 ############################################
-# RF training, based on the code from discussion section 11.
+# SVM training, based on the code from assignment 7, chap9_8.R
 
 # Create a hyperparameter training grid to more easily generalize to multiple tuning parameters.
 tune_grid = expand.grid(cost = svm_cost_seq)
@@ -205,12 +226,7 @@ best_pred
 
 # Refit the best parameters to the full (non-CV) dataset and save the result.
 # NOTE: if using a subset of the data, it will only retrain on that subset.
-# Save importance also.
-# library(caret)
-# TODO: use foreach to train on multiple cores and combine the trees later.
-# NOTE: err.rate may be null in that case though.
-#model = svm(data[idx, -1], data[idx, 1], mtry = best_pred, ntree = rf_ntree, importance=T)
-model = svm(train_set[, -1], train_set[, 1], kernel="radial", cost = best_pred)
+model = svm(data[idx, -1], data[idx, 1], kernel="radial", cost = best_pred)
 
 # Predict separately on holdout sample if using a subset for training and report holdout sample error.
 
