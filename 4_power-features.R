@@ -49,24 +49,39 @@ getDoParWorkers()
 # Use foreach here so that it can be run on multiple cores.
 # This takes about 53 minutes to execute without multicore processing.
 # TODO: get multicore processing to work.
-power_features = foreach(type = names(docs)) %do% {
-  cat("Processing", type, "\n")
-  #power_features[[type]] = power_features_sentence(docs[[type]])
-  power_features_sentence(docs[[type]])
-}
+system.time({
+  feature_list = foreach(type = names(docs)) %do% {
+    cat("Processing", type, "\n")
+    #power_features[[type]] = power_features_sentence(docs[[type]])
+    power_features_sentence(docs[[type]])
+  }
+})
 
 # Re-save the outcome names.
-names(power_features) = names(docs)
+names(feature_list) = names(docs)
 
 # Double-check dimensions of the result.
-sapply(power_features, FUN=dim)
+sapply(feature_list, FUN=dim)
 
 # Confirm that it corresponds with dimensions of the input doc list.
 sapply(docs, FUN=length)
 
-# TODO: convert current docs list to a dataframe.
+# Convert list to a matrix that we can cbind to the word feature matrix.
+sentence_features = do.call(rbind, feature_list)
+dim(sentence_features)
+# TODO: confirm that we get the results in the exactly correct order.
 
-# TODO: run the dtm power features on that dataframe.
+load("data/cleaned-docs.Rdata")
+
+# Run the dtm power features on the word feature dataframe.
+system.time({
+  word_features = power_features_dtm(docs)
+})
+
+# Combine the sentence and word power features.
+# TODO: need to make sure that we are combining in the correct order.
+# Otherwise we need to merge on the book name/id.
+power_features = cbind(sentence_features, word_features)
 
 save(power_features, file="data/power-features.RData")
 
