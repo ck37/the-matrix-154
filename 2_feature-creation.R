@@ -18,27 +18,30 @@ if (!exists("docs")) {
 
 source("function_library.R")
 
-################## Exploring docs ##################
-### docs is a list of 4 groups "child", "history", "religion", "science"
-### info of the first file of the group "child"
-child = docs$child
-length(child)
-inspect(child[1])
-### see content of the first file of the group "child"
-as.character(child[1])
+# To execute the explorartory analysis set to true or run manually.
+if (F) {
+  ################## Exploring docs ##################
+  ### docs is a list of 4 groups "child", "history", "religion", "science"
+  ### info of the first file of the group "child"
+  child = docs$child
+  length(child)
+  inspect(child[1])
+  ### see content of the first file of the group "child"
+  as.character(child[1])
+  
+  ################# Feature Creation ###############
 
-################# Feature Creation ###############
-
-# Generating small sample
-index1 = sample(length(docs$child),10)
-index2 = sample(length(docs$history),10)
-sample1 = docs$child[index1]
-sample2 = docs$history[index2]
-sample = c(sample1,sample2)
+  # Generating small sample
+  index1 = sample(length(docs$child),10)
+  index2 = sample(length(docs$history),10)
+  sample1 = docs$child[index1]
+  sample2 = docs$history[index2]
+  sample = c(sample1,sample2)
 
 
-#result = clean_imported_documents(sample)
-# View(result)
+  #result = clean_imported_documents(sample)
+  # View(result)
+}
 
 stopwords = load_stopwords()
 
