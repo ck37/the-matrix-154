@@ -145,7 +145,7 @@ power_features_sentence = function(doc) {
     
     text = as.data.frame(book4)[2]
     sents = convert_text_to_sentences(text)
-    sents2 = lapply(sents,removepunc)
+    sents2 = lapply(sents,remove_punc)
     
     ### number of sentence
     power5 = length(sents2)
