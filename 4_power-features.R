@@ -8,7 +8,6 @@ script_timer = proc.time()
 # --- End prelude.
 #########################################
 
-
 library(tm)
 library(SnowballC)
 library(stringi)
@@ -48,11 +47,22 @@ if (exists("conf")) {
 getDoParWorkers()
 
 # Use foreach here so that it can be run on multiple cores.
+# This takes about 53 minutes to execute without multicore processing.
+# TODO: get multicore processing to work.
 power_features = foreach(type = names(docs)) %do% {
   cat("Processing", type, "\n")
   #power_features[[type]] = power_features_sentence(docs[[type]])
   power_features_sentence(docs[[type]])
 }
+
+# Re-save the outcome names.
+names(power_features) = names(docs)
+
+# Double-check dimensions of the result.
+sapply(power_features, FUN=dim)
+
+# Confirm that it corresponds with dimensions of the input doc list.
+sapply(docs, FUN=length)
 
 # TODO: convert current docs list to a dataframe.
 
