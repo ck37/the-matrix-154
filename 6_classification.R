@@ -188,6 +188,8 @@ best_pred
 # NOTE: if using a subset of the data, it will only retrain on that subset.
 # Save importance also.
 # library(caret)
+# TODO: use foreach to train on multiple cores and combine the trees later.
+# NOTE: err.rate may be null in that case though.
 rf = randomForest(data[idx, -1], data[idx, 1], mtry = best_pred, ntree = rf_ntree, importance=T)
 varimp = importance(rf)
 
