@@ -15,6 +15,8 @@ removepunc = function(x){
 }
 
 ### main function: generates sentence-based power feature matrix
+### input: tm data
+### output: 4 columns of power features with rownames=filename
 power = function(doc){
   n = length(doc)
   power = matrix(NA,nrow=n,ncol=4,dimnames=list(seq(1,n)))
@@ -52,7 +54,8 @@ power = function(doc){
 }
 
 ########################## power featrues from dtm ##########################
-
+### input: dtm
+### output: originial dtm combined with new power features
 power_dtm = function(dtm){
   ### power1: returns the vector of average word length of each txt file
   power1 = numeric()
