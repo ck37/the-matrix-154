@@ -5,6 +5,13 @@ cat("Executing:", sys.frame(1)$ofile, "\nDatetime:", date(), "\n")
 # Start timing the script.
 script_timer = proc.time()
 
+# --- End prelude.
+#########################################
+
+library(randomForest)
+library(dplyr)
+library(doMC) # For multicore processing.
+
 # Load the docs file if it doesn't already exist.
 if (!exists("data", inherits=F)) {
   load("data/filtered-docs.Rdata")
@@ -13,7 +20,6 @@ if (!exists("data", inherits=F)) {
   gc()
 }
 
-library(randomForest)
 
 ############################################
 # Customize training parameters for slow vs. fast execution.
@@ -75,14 +81,13 @@ if (speed == "instant") {
   mtry_seq
   rf_ntree = 500
   cv_folds = 10
-  data_subset_ratio = 1
+  data_subset_ratio = 0.9
 }
 
 
 ############################################
 # Setup multicore processing to speed up the model training.
 
-library(doMC)
 cat("Cores detected:", detectCores(), "\n")
 if (exists("conf")) {
   registerDoMC(conf$num_cores)
@@ -105,6 +110,11 @@ samples_per_fold = floor(length(idx) / cv_folds)
 target_classes = levels(data[, 1])
 table(target_classes)
 
+
+
+############################################
+# RF training, based on the code from discussion section 11.
+
 # Create a hyperparameter training grid to more easily generalize to multiple tuning parameters.
 tune_grid = expand.grid(mtry = mtry_seq)
 
@@ -113,8 +123,6 @@ tune_grid = expand.grid(mtry = mtry_seq)
 cv_results = matrix(NA, nrow(tune_grid) * cv_folds, ncol(tune_grid) + length(target_classes) + 2)
 
 
-############################################
-# RF training, based on the code from discussion section 11.
 
 
 # Loop through different num of predict selected in RF 
@@ -162,7 +170,6 @@ colnames(cv_results) = colnames(cv_data)
 # Convert from a matrix to a dataframe so that we can reshape the results.
 cv_results = as.data.frame(cv_results)
 
-library(dplyr)
 
 # Calculate the mean & sd error rate for each combination of hyperparameters.
 # Do.call is used so that we can group by the column names in the tuning grid.
