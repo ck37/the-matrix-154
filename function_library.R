@@ -44,12 +44,12 @@ load_stopwords = function(input_file = "inbound/common-english-words.txt", outpu
     load(output_file)
   } else {
     # Load the official stopword list and make sure it's the same as the one used by tm.
-    file_con = file(file_name)
+    file_con = file(input_file)
     # Process it as one line separated by commas, and convert it to a vector.
     stopwords = unlist(strsplit(readLines(file_con)[1], split=c(","), fixed=T))
     close(file_con)
   
-    if (output_file) {
+    if (length(output_file) > 0) {
       save(stopwords, file=output_file)
     }
   }
