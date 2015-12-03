@@ -10,24 +10,30 @@ script_timer = proc.time()
 
 library(randomForest)
 library(e1071)
+library(xgboost)
 
 # Load our main functions.
 source("function_library.R")
 
 # Load RF model.
 #load("data/models-rf-2015-12-01-slow.RData")
-load("data/models-rf-2015-12-02-very-slow.RData")
+#load("data/models-rf-2015-12-02-very-slow.RData")
 
 # Load SVM model.
 #load("data/models-svm-fast.RData")
 
+# Load GBM model
+load("data/models-gbm-2015-12-03-slow-v1.RData")
+
 # Define the models we want to evaluate.
-models = list(rf = list(model=rf, export_name="rf-export.csv"),
-              svm = list(model=svm, export_name="svm-export.csv")
+models = list(#rf = list(model=rf, export_name="rf-export.csv"),
+              #svm = list(model=svm, export_name="svm-export.csv",
+              gbm = list(model=gbm, export_name="gbm-export.csv")
 )
 
 # Models to skip.
 models$svm = NULL
+models$rf = NULL
 
 #verification_dir = "inbound/Practice"
 #verification_labels = "inbound/Practice_label.csv"
@@ -71,11 +77,16 @@ for (model_name in names(models)) {
   model = models[[model_name]]
   
   # Predict class using the model
-  predictions = predict(model$model, new_docs)
+  if (model_name == "gbm") {
+    predictions_int = predict(model$model, data.matrix(new_docs))
+  } else {
+    predictions = predict(model$model, new_docs)
+    # Convert the predictions to numeric codes.
+    predictions_int = as.numeric(factor(predictions)) - 1
+  }
+  
   #print(table(predictions))
 
-  # Convert the predictions to numeric codes.
-  predictions_int = as.numeric(factor(predictions)) - 1
   #print(table(predictions, predictions_int))
 
   # Generate csv export.

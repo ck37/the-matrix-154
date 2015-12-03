@@ -9,7 +9,9 @@ script_timer = proc.time()
 #########################################
 
 #library(gbm)
-# try xgboost rather than gbm for better multicore processing.
+# Try xgboost rather than gbm for better multicore processing.
+# To install -- devtools::install_github('dmlc/xgboost',subdir='R-package’)
+# More info -- https://github.com/dmlc/xgboost/tree/master/R-package
 library(xgboost)
 library(dplyr)
 library(doMC) # For multicore processing.
@@ -29,7 +31,7 @@ if (!exists("data", inherits=F)) {
 # Possible speed configurations.
 speed_types = c("instant", "fast", "medium", "slow", "very slow", "ideal")
 # Choose which option you want, based on speed vs. accuracy preference.
-speed = speed_types[3]
+speed = speed_types[4]
 cat("Speed configuration:", speed, "\n")
 
 set.seed(5)
@@ -66,7 +68,7 @@ if (speed == "instant") {
   gbm_ntrees = c(1, 2)
   gbm_depth = c(1, 2)
   #gbm_shrinkage = c(0.1, 0.001)
-  gbm_shrinkage = c(0.5)
+  gbm_shrinkage = c(0.2)
   #gbm_minobspernode = c(5, 10)
   gbm_minobspernode = c(10)
   
@@ -85,7 +87,7 @@ if (speed == "instant") {
   # GBM parameters
   gbm_ntrees = c(10, 50)
   gbm_depth = c(1, 2)
-  gbm_shrinkage = c(0.1, 0.001)
+  gbm_shrinkage = c(0.2, 0.1)
   gbm_minobspernode = c(10)
 } else if (speed == "medium") {
   # This configuration takes about 30 minutes.
@@ -104,8 +106,8 @@ if (speed == "instant") {
   # GBM parameters
   gbm_ntrees = c(50, 100)
   gbm_depth = c(1, 2)
-  gbm_shrinkage = c(0.1, 0.001)
-  gbm_minobspernode = c(5, 10)
+  gbm_shrinkage = c(0.2, 0.1, 0.01)
+  gbm_minobspernode = c(10)
 } else if (speed == "slow") {
   # This configuration should take about 6 hours per model.
   
@@ -119,10 +121,10 @@ if (speed == "instant") {
   svm_cost_seq = c(5, 10, 100)
   
   # GBM parameters
-  gbm_ntrees = c(50, 100, 500)
+  gbm_ntrees = c(100, 500, 1000)
   gbm_depth = c(1, 2)
-  gbm_shrinkage = c(0.1, 0.001)
-  gbm_minobspernode = c(5, 10)
+  gbm_shrinkage = c(0.2, 0.1, 0.01)
+  gbm_minobspernode = c(10)
 } else if (speed == "very slow") {
   # This configuration should take about 16 hours.
   # We need to do 10 based on the project definition, even though 8 folds would be preferable.
@@ -135,9 +137,9 @@ if (speed == "instant") {
   svm_cost_seq = c(1, 5, 10)
   
   # GBM parameters
-  gbm_ntrees = c(100, 500, 1000)
+  gbm_ntrees = c(500, 1000)
   gbm_depth = c(1, 2, 4)
-  gbm_shrinkage = c(0.1, 0.001, 0.0001)
+  gbm_shrinkage = c(0.1, 0.01, 0.005)
   gbm_minobspernode = c(10, 50)
 } else {
   # Unclear how long this would take to complete, but we would want to use Amazon EC2 to run (or Savio).
@@ -150,6 +152,12 @@ if (speed == "instant") {
   rf_ntree = 500
   
   svm_cost_seq = c(1, 5, 10)
+  
+  # GBM parameters
+  gbm_ntrees = c(500, 1000, 2000)
+  gbm_depth = c(1, 2, 4, 8)
+  gbm_shrinkage = c(0.2, 0.1, 0.01, 0.001)
+  gbm_minobspernode = c(3, 10, 50)
 }
 
 
@@ -223,6 +231,7 @@ system.time({
       error_rate = mean(cv_pred != as.numeric(val_set[, 1]) - 1)
       
       # Calculate the per-class error rates.
+      # TODO: fix this - doesn't work right now.
       per_class_error_rate = sapply(target_classes, FUN=function(class) {
         mean(cv_pred[ val_set[, 1] == class] != which(target_classes == class) - 1)
       })
@@ -250,7 +259,19 @@ cv_results = as.data.frame(cv_results)
 # Calculate the mean & sd error rate for each combination of hyperparameters.
 # Do.call is used so that we can group by the column names in the tuning grid.
 # as.name converts the column names from strings to R variable names.
-grid_results = as.data.frame(do.call(group_by, list(cv_results[, 1:(ncol(tune_grid) + 2)], as.name(colnames(tune_grid)))) %>% summarise(mean_error_rate = mean(error_rate), error_sd=sd(error_rate)))
+#args = c(list(cv_results[, 1:(ncol(tune_grid) + 2)]), list(sapply(colnames(tune_grid), as.name)))
+#args
+cols = cv_results[, 1:(ncol(tune_grid) + 2)]
+cols
+#args = c(list(cols), lapply(colnames(tune_grid), as.name))
+#args
+#names(args) = c(".data", colnames(tune_grid))
+#args
+# Specify the group_by columns manually for now.
+# TODO: fix the generalized version so that it's automatic.
+grouped_data = group_by(cols, ntrees, depth, shrinkage, minobspernode)
+#grouped_data = as.data.frame(do.call(group_by, args))
+grid_results = as.data.frame(grouped_data %>% summarise(mean_error_rate = mean(error_rate), error_sd=sd(error_rate)))
 
 grid_results
 
@@ -262,6 +283,7 @@ plot(grid_results[, 1], grid_results$mean_error_rate, xlab = "Ntrees", ylab = "C
 best_params = grid_results[which.min(grid_results$mean_error_rate), ] 
 
 params = best_params
+params
 
 # Refit the best parameters to the full (non-CV) dataset and save the result.
 # NOTE: if using a subset of the data, it will only retrain on that subset.
