@@ -57,29 +57,22 @@ load_stopwords = function(input_file = "inbound/common-english-words.txt", outpu
   return(stopwords)
 }
 
-# BigramTokenizer function (need package 'RWeka')
-# library('RWeka')
-BigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 2, max = 2))
-options(mc.cores=1)
-
 # Derive a dictionary of words/ bigrams and total number of their appearances through out the whole dataset.
 clean_documents = function(book, stopwords = c()) {
   book = tm_map(book, content_transformer(tolower))
-  book = tm_map(book, removeWords, c('project','gutenberg','ebook','title','author','release','chapter','posting','editor','translator','encoding','ascii','updated'))
+  book = tm_map(book, removeWords, c('project','gutenberg','ebook','title','author','release','chapter'))
   if (length(stopwords) > 0) {
     book  = tm_map(book, removeWords, stopwords)
   }
   # NOTE: we should double-check this removePunctuation code, because it may remove the punctation
   # without substituting spaces, which will mess up the words.
-  dtm1 = DocumentTermMatrix(book,
-                            control = list(tolower=T, stopwords=T, removePunctuation=T, removeNumbers=T, stemming=T))
-  dtm1 = removeSparseTerms(dtm1, .99)
-  dtm2 = DocumentTermMatrix(book,
-                            control = list(tokenize = BigramTokenizer,tolower=T, stopwords=T, removePunctuation=T, removeNumbers=T, stemming=T))
-  dtm2 = removeSparseTerms(dtm2,.99)
-  list_of_dtms <- list(dtm1, dtm2)
-  dtms_combined_into_one <- do.call(tm:::c.DocumentTermMatrix, list_of_dtms)
-  return(dtms_combined_into_one)
+  dtm = DocumentTermMatrix(book,
+                           control = list(tolower=T, stopwords=T, removePunctuation=T, removeNumbers=T, stemming=T)
+  )
+  dtm = removeSparseTerms(dtm, .99)
+  # Let's hold off on this part for now.
+  #dtm = as.data.frame(as.matrix(dtm))
+  return(dtm)
 }
 
 
@@ -175,6 +168,27 @@ power_features_sentence = function(doc) {
   }
   colnames(power) = c("sentence_count","sentence_avg_length","4digit_nums","digit_count")
   return(power)
+}
+
+
+########################## power features bigrams ##########################
+library(RWeka)
+BigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 2, max = 2))
+options(mc.cores=1)
+
+power_features_bigrams = function(book, stopwords = c()) {
+  book = tm_map(book, content_transformer(tolower))
+  book = tm_map(book, removeWords, c('project','gutenberg','ebook','title','author','release','chapter','posting','editor','translator','encoding','ascii','updated'))
+  if (length(stopwords) > 0) {
+    book  = tm_map(book, removeWords, stopwords)
+  }
+  # NOTE: we should double-check this removePunctuation code, because it may remove the punctation
+  # without substituting spaces, which will mess up the words.
+  dtm = DocumentTermMatrix(book,
+                            control = list(tokenize = BigramTokenizer,tolower=T, stopwords=T, removePunctuation=T, removeNumbers=T, stemming=T))
+  dtm = removeSparseTerms(dtm,.99)
+  dtm = as.data.frame(as.matrix(dtm))
+  return(dtm)
 }
 
 ########################## power features from dtm ##########################
