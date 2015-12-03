@@ -27,7 +27,7 @@ if (!exists("data", inherits=F)) {
 # Possible speed configurations.
 speed_types = c("instant", "fast", "medium", "slow", "very slow", "ideal")
 # Choose which option you want, based on speed vs. accuracy preference.
-speed = speed_types[2]
+speed = speed_types[3]
 cat("Speed configuration:", speed, "\n")
 
 set.seed(5)
@@ -71,9 +71,10 @@ if (speed == "instant") {
   svm_cost_seq = c(1, 10)
 } else if (speed == "medium") {
   # This configuration takes about 30 minutes.
-  
-  # We use 4 here because we have 4 cores right now.
-  cv_folds = 4
+ 
+  # This might be 4 if you have 4 cores, or the full 10 if on EC2.
+  # But it can't be less than 2.
+  cv_folds = min(10, max(getDoParWorkers(), 2))
   data_subset_ratio = 0.25
   
   mtry_seq = round(sqrt(ncol(data)) * c(0.5, 1, 2))
@@ -233,7 +234,26 @@ model = svm(data[idx, -1], data[idx, 1], kernel="radial", cost = best_pred)
 # Define test_results in case we already used all data in cross-validation.
 test_results = NA
 if (data_subset_ratio != 1) {
-  pred = predict(model, newdata = data[-idx, -1])
+  if (F) {
+    # TODO: predict multicore to speed up execution on large datasets.
+    predict_rows = which(!1:nrow(data) %in% idx)
+    # Divide the rows to predict into one group per core.
+    # groups = sample(1:getDoParWorkers(), length(predict_rows), replace=T)
+    
+    # TODO: fix this logic here.
+    groups = rep(1:getDoParWorkers(), ceiling(length(predict_rows)/getDoParWorkers()))
+    groups = groups[1:length(predict_rows)]
+    groups = sort(groups)
+    table(groups)
+    pred = foreach(group = 1:getDoParWorkers(), .combine = c) %dopar% {
+      predict(model, newdata = data[predict_rows[groups == group], -1])
+    }
+    # This is not working right now.
+  
+  } else {
+    # Predict using a single core.
+    pred = predict(model, newdata = data[-idx, -1])
+  }
   
   # Overall error: percentage of test observations predicted incorrectly.
   error_rate = mean(pred != data[-idx, 1])
