@@ -1,6 +1,7 @@
 # tm is a nice text mining package for R.
 # See helpful guide at https://github.com/rochelleterman/PS239T/blob/master/11_text-analysis/2_Pre-processing.Rmd
 library(tm)
+library(SnowballC) # for stemming
 
 # For step 1.
 import_text_documents = function(directory = "", doc_dirs = list(no_type="")) {
