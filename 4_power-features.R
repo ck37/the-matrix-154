@@ -74,6 +74,7 @@ dim(sentence_features)
 load("data/cleaned-docs.Rdata")
 
 # Run the dtm power features on the word feature dataframe.
+# This takes an incredibly long time to execute (> 4 hours) - unclear how long it actually takes to finish.
 system.time({
   word_features = power_features_dtm(docs)
 })

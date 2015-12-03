@@ -1,6 +1,7 @@
 # tm is a nice text mining package for R.
 # See helpful guide at https://github.com/rochelleterman/PS239T/blob/master/11_text-analysis/2_Pre-processing.Rmd
 library(tm)
+library(SnowballC) # for stemming
 
 # For step 1.
 import_text_documents = function(directory = "", doc_dirs = list(no_type="")) {
@@ -44,12 +45,12 @@ load_stopwords = function(input_file = "inbound/common-english-words.txt", outpu
     load(output_file)
   } else {
     # Load the official stopword list and make sure it's the same as the one used by tm.
-    file_con = file(file_name)
+    file_con = file(input_file)
     # Process it as one line separated by commas, and convert it to a vector.
     stopwords = unlist(strsplit(readLines(file_con)[1], split=c(","), fixed=T))
     close(file_con)
   
-    if (output_file) {
+    if (length(output_file) > 0) {
       save(stopwords, file=output_file)
     }
   }
