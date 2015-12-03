@@ -60,7 +60,7 @@ load_stopwords = function(input_file = "inbound/common-english-words.txt", outpu
 # Derive a dictionary of words and total number of their appearances through out the whole dataset.
 clean_documents = function(book, stopwords = c()) {
   book = tm_map(book, content_transformer(tolower))
-  book = tm_map(book, removeWords, c('project','gutenberg','ebook','title','author','release','chapter'))
+  book = tm_map(book, removeWords, c('project','gutenberg','ebook','title','author','release','chapter','posting','editor','translator','encoding','ascii','updated'))
   if (length(stopwords) > 0) {
     book  = tm_map(book, removeWords, stopwords)
   }
@@ -142,7 +142,7 @@ power_features_sentence = function(doc) {
     book = doc[i]
     book2 = tm_map(book, content_transformer(tolower))
     book3 = tm_map(book2, stripWhitespace)
-    book4 = tm_map(book2, stemDocument)
+    book4 = tm_map(book3, stemDocument)
     
     text = as.data.frame(book4)[2]
     sents = convert_text_to_sentences(text)
@@ -166,7 +166,6 @@ power_features_sentence = function(doc) {
     power[i,] = as.matrix(cbind(power5,power6,power7,power8))
     rownames(power)[i] = title
   }
-  #colnames(power) = c("power1","power2","power3","power4")
   colnames(power) = c("sentence_count","sentence_avg_length","4digit_nums","digit_count")
   return(power)
 }
