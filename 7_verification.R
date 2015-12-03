@@ -15,18 +15,25 @@ library(e1071)
 source("function_library.R")
 
 # Load RF model.
-load("data/models-rf-2015-12-01-slow.RData")
+#load("data/models-rf-2015-12-01-slow.RData")
+load("data/models-rf-2015-12-02-very-slow.RData")
 
 # Load SVM model.
-load("data/models-svm-fast.RData")
+#load("data/models-svm-fast.RData")
 
 # Define the models we want to evaluate.
 models = list(rf = list(model=rf, export_name="rf-export.csv"),
               svm = list(model=svm, export_name="svm-export.csv")
 )
 
-verification_dir = "inbound/Practice"
-verification_labels = "inbound/Practice_label.csv"
+# Models to skip.
+models$svm = NULL
+
+#verification_dir = "inbound/Practice"
+#verification_labels = "inbound/Practice_label.csv"
+
+verification_dir = "inbound/Validation"
+verification_labels = ""
 
 # Load the word feature matrix from step 3.
 load("data/filtered-docs.Rdata")
@@ -76,7 +83,7 @@ for (model_name in names(models)) {
   write.table(predict_export, file=paste0("exports/", model$export_name), row.names=F, quote=F, col.names=T, sep=",")
 
   # Load practice labels and check accuracy.
-  if (length(verification_labels) > 0) {
+  if (nchar(verification_labels) > 0) {
     labels = read.csv(verification_labels)
     accuracy = mean(predictions_int == labels$category)
     cat("Accuracy on the verification set:", accuracy, "\n")
