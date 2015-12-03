@@ -178,19 +178,24 @@ power_features_dtm = function(dtm) {
   
   new = matrix(NA,nrow=nrow(dtm),ncol=4)
   colnames(new) = c("words_count","chars_count","words_avg_length","words_distinct")
+  words_chars = nchar(colnames(dtm))
   
   for(i in 1:nrow(dtm)){
     ### power1: total number of words
     new[i,1] = sum(as.numeric(dtm[i,]))
     
     ### power2: total number of characters
-    new[i,2] = as.numeric(t(as.matrix(nchar(colnames(dtm))))%*%as.matrix(as.numeric(dtm[i,])))
+    new[i,2] = as.numeric(t(as.matrix(words_chars))%*%as.matrix(as.numeric(dtm[i,])))
     
     ### power3: returns the vector of average word length of each txt file
     new[i,3] = new[i,2]/new[i,1]
     
     ### power4: number of unique words
     new[i,4] = length(which(as.numeric(dtm[i,])!=0))
+    
+    ### power5: standard deviation of word length
+    new[i,4] = length(which(as.numeric(dtm[i,])!=0))
+    
   }
   new = as.data.frame(new)
   return(new)
