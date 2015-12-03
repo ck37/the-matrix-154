@@ -176,8 +176,8 @@ power_features_sentence = function(doc) {
 ### output: new power features matrix
 power_features_dtm = function(dtm) {
   
-  new = matrix(NA,nrow=nrow(dtm),ncol=4)
-  colnames(new) = c("words_count","chars_count","words_avg_length","words_distinct")
+  new = matrix(NA,nrow=nrow(dtm),ncol=5)
+  colnames(new) = c("words_count","chars_count","words_avg_length","words_distinct","sd_words")
   words_chars = nchar(colnames(dtm))
   
   for(i in 1:nrow(dtm)){
@@ -194,7 +194,9 @@ power_features_dtm = function(dtm) {
     new[i,4] = length(which(as.numeric(dtm[i,])!=0))
     
     ### power5: standard deviation of word length
-    new[i,4] = length(which(as.numeric(dtm[i,])!=0))
+    sqrdmean = sum(as.matrix(words_chars^2)*as.matrix(as.numeric(dtm[i,])))/new[i,1]
+    mean = sum(words_chars*as.matrix(as.numeric(dtm[i,])))/new[i,1]
+    new[i,5] = sqrdmean-(mean^2)
     
   }
   new = as.data.frame(new)
