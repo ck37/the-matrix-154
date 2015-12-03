@@ -27,7 +27,7 @@ if (!exists("data", inherits=F)) {
 # Possible speed configurations.
 speed_types = c("instant", "fast", "medium", "slow", "very slow", "ideal")
 # Choose which option you want, based on speed vs. accuracy preference.
-speed = speed_types[3]
+speed = speed_types[4]
 cat("Speed configuration:", speed, "\n")
 
 set.seed(5)
@@ -80,8 +80,7 @@ if (speed == "instant") {
   mtry_seq = round(sqrt(ncol(data)) * c(0.5, 1, 2))
   rf_ntree = 60
   
-  #svm_cost_seq = c(0.01, 0.1, 1, 5, 10)
-  svm_cost_seq = c(5, 10, 100)
+  svm_cost_seq = c(1, 5, 10)
 } else if (speed == "slow") {
   # This configuration should take about 6 hours.
   
@@ -92,7 +91,7 @@ if (speed == "instant") {
   mtry_seq = round(sqrt(ncol(data)) * c(1, 2, 4))
   rf_ntree = 100
   
-  svm_cost_seq = c(5, 10, 100)
+  svm_cost_seq = c(1, 5, 10)
 } else if (speed == "very slow") {
   # This configuration should take about 16 hours.
   # We need to do 10 based on the project definition, even though 8 folds would be preferable.
