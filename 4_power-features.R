@@ -50,10 +50,13 @@ getDoParWorkers()
 # This takes about 53 minutes to execute without multicore processing.
 # TODO: get multicore processing to work.
 system.time({
-  feature_list = foreach(type = names(docs)) %do% {
-    cat("Processing", type, "\n")
+  #feature_list = foreach(type = names(docs)) %dopar% {
+  feature_list = foreach(doc = docs) %do% {
+    #cat("Processing", type, "\n")
+    cat("Processing doc type\n")
     #power_features[[type]] = power_features_sentence(docs[[type]])
-    power_features_sentence(docs[[type]])
+    #power_features_sentence(docs[[type]])
+    power_features_sentence(doc)
   }
 })
 
@@ -75,9 +78,13 @@ load("data/cleaned-docs.Rdata")
 
 # Run the dtm power features on the word feature dataframe.
 # This takes an incredibly long time to execute (> 4 hours) - unclear how long it actually takes to finish.
-system.time({
-  word_features = power_features_dtm(docs)
-})
+word_features = NA
+# This is disabled for now because it's too slow.
+if (F) {
+  system.time({
+    word_features = power_features_dtm(docs)
+  })
+}
 
 # Combine the sentence and word power features.
 # TODO: need to make sure that we are combining in the correct order.
