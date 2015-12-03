@@ -27,7 +27,7 @@ if (!exists("data", inherits=F)) {
 # Possible speed configurations.
 speed_types = c("instant", "fast", "medium", "slow", "very slow", "ideal")
 # Choose which option you want, based on speed vs. accuracy preference.
-speed = speed_types[4]
+speed = speed_types[5]
 cat("Speed configuration:", speed, "\n")
 
 set.seed(5)
@@ -62,17 +62,22 @@ if (speed == "instant") {
   cv_folds = 4
   data_subset_ratio = 0.25
 } else if (speed == "slow") {
-  # This configuration should take about 6 hours.
+  # Laptop time: 6 hours. EC2 time: TBD.
   mtry_seq = round(sqrt(ncol(data)) * c(1, 2, 4))
   rf_ntree = 100
   # We need to do 10 based on the project definition, even though 8 folds would be preferable.
   cv_folds = 10
   data_subset_ratio = 0.5
 } else if (speed == "very slow") {
-  # This configuration should take about 16 hours.
+  # Laptop time: 16 hours? EC2 time: 5 hours (c4.8xl).
+  # NOTE: we may not have enough memory for mtry = 8 - TBD.
   mtry_seq = round(sqrt(ncol(data)) * c(4, 8))
   rf_ntree = 200
   # We need to do 10 based on the project definition, even though 8 folds would be preferable.
+  #cv_folds = 10
+  # Set to 9 because we have 18 cores on EC2.
+  # cv_folds = 9
+  # Actually we are only using one core per CV thread, so we might as well stick to 10.
   cv_folds = 10
   data_subset_ratio = 0.7
 } else {
