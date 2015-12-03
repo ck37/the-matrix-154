@@ -7,6 +7,12 @@ if (!exists("docs")) {
   load("data/cleaned-docs.Rdata")
 }
 
+# Remove words that are used in at least 80% of documents - 20 words.
+cutoff_high_pct = 0.8
+
+# Remove words that are not in at least 50 documents.
+cutoff_low = 50
+
 # Here we use the sum of how many times a word is used, which can be greater than 1 in a given doc.
 # This is not exactly what the final-project PDF wants.
 #system.time({
@@ -27,16 +33,13 @@ dev.off()
 # How many words do we have right now?
 ncol(docs)
 
-# Remove words that are used in at least 70% of documents - 11 words.
-cutoff_high = round(nrow(docs) * 0.7)
+cutoff_high = round(nrow(docs) * cutoff_high_pct)
 cutoff_high
 sum(word_usage > cutoff_high)
 word_usage[word_usage > cutoff_high]
 # Remove words that are above the cutoff.
 docs = docs[, !colnames(docs) %in% names(word_usage[word_usage > cutoff_high]) ]
 
-# Remove words that are not in at least 200 documents.
-cutoff_low = 200
 sum(word_usage < cutoff_low)
 word_usage[word_usage < cutoff_low]
 # Remove words that are above the cutoff.
