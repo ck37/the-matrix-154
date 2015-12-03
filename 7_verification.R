@@ -25,12 +25,15 @@ models = list(rf = list(model=rf, export_name="rf-export.csv"),
               svm = list(model=svm, export_name="svm-export.csv")
 )
 
+verification_dir = "inbound/Practice"
+verification_labels = "inbound/Practice_label.csv"
+
 # Load the word feature matrix from step 3.
 load("data/filtered-docs.Rdata")
 training_docs = docs
 
 # Load practice verification set.
-imported_docs = import_text_documents("inbound/Practice")
+imported_docs = import_text_documents(verification_dir)
 results = clean_imported_documents(imported_docs, load_stopwords())
 docs = results$docs
 
@@ -60,25 +63,27 @@ for (model_name in names(models)) {
   cat("Processing", model_name, "\n")
   model = models[[model_name]]
   
-# Predict class using the model
-predictions = predict(model$model, new_docs)
-#print(table(predictions))
+  # Predict class using the model
+  predictions = predict(model$model, new_docs)
+  #print(table(predictions))
 
-# Convert the predictions to numeric codes.
-predictions_int = as.numeric(factor(predictions)) - 1
-#print(table(predictions, predictions_int))
+  # Convert the predictions to numeric codes.
+  predictions_int = as.numeric(factor(predictions)) - 1
+  #print(table(predictions, predictions_int))
 
-# Generate csv export.
-predict_export = cbind(id=docs$id, category=predictions_int)
-write.table(predict_export, file=paste0("exports/", model$export_name), row.names=F, quote=F, col.names=T, sep=",")
+  # Generate csv export.
+  predict_export = cbind(id=docs$id, category=predictions_int)
+  write.table(predict_export, file=paste0("exports/", model$export_name), row.names=F, quote=F, col.names=T, sep=",")
 
-# Load practice labels and check accuracy.
-labels = read.csv("inbound/Practice_label.csv")
-accuracy = mean(predictions_int == labels$category)
-cat("Accuracy on the verification set:", accuracy, "\n")
-print(table(predictions_int, labels$category))
-  models[[model_name]]$accuracy = accuracy
-  models[[model_name]]$predictions = predict_export
+  # Load practice labels and check accuracy.
+  if (length(verification_labels) > 0) {
+    labels = read.csv(verification_labels)
+    accuracy = mean(predictions_int == labels$category)
+    cat("Accuracy on the verification set:", accuracy, "\n")
+    print(table(predictions_int, labels$category))
+    models[[model_name]]$accuracy = accuracy
+    models[[model_name]]$predictions = predict_export
+  }
 }
 
 save(models, file="data/model-verification.RData")
