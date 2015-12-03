@@ -173,52 +173,25 @@ power_features_sentence = function(doc) {
 
 ########################## power features from dtm ##########################
 ### input: dtm
-### output: originial dtm combined with new power features
+### output: new power features matrix
 power_features_dtm = function(dtm) {
-  ### power1: returns the vector of average word length of each txt file
-  power1 = numeric()
-  c = numeric()
-  for(i in 1:length(dtm[ ,1])){    
-    for(j in 1:length(dtm[1, ])){    
-      c[j] = nchar(colnames(dtm[j])) * dtm[i,j]
-    }
-    power1[i] = sum(c)/ sum(dtm[i, ])
-  }
   
-  ### power2: returns the vector showing how many distinct words used in each file
-  power2 = numeric()
-  for(i in 1:length(dtm[ ,1])){    
-    total = 0
-    for(j in 1:length(dtm[1, ])){
-      if(dtm[i,j] >= 1){
-        total = total + 1
-      }  
-    }
-    power2[i] = total
-  }
+  new = matrix(NA,nrow=nrow(dtm),ncol=4)
+  colnames(new) = c("words_count","chars_count","words_avg_length","words_distinct")
   
-  ### power3: total # of words
-  power3 = numeric()
-  for(i in 1:length(dtm[ ,1])){    
-    total = sum(dtm[i, ])
-    power3[i] = total  
+  for(i in 1:nrow(dtm)){
+    ### power1: total number of words
+    new[i,1] = sum(as.numeric(dtm[i,]))
+    
+    ### power2: total number of characters
+    new[i,2] = as.numeric(t(as.matrix(nchar(colnames(dtm))))%*%as.matrix(as.numeric(dtm[i,])))
+    
+    ### power3: returns the vector of average word length of each txt file
+    new[i,3] = new[i,2]/new[i,1]
+    
+    ### power4: number of unique words
+    new[i,4] = length(which(as.numeric(dtm[i,])!=0))
   }
-  
-  ### power4: total # of characters
-  power4 = numeric()
-  c2 = numeric()
-  for(i in 1:length(dtm[ ,1])){    
-    for(j in 1:length(dtm[1, ])){    
-      c2[j] = nchar(colnames(dtm[j])) * dtm[i,j]
-    }
-    power4[i] = sum(c2)
-  }
-  #dtm$power1 = power1
-  #dtm$power2 = power2
-  #dtm$power3 = power3
-  #dtm$power4 = power4
-  result = cbind(power1, power2, power3, power4)
-  colnames(result) = c("words_avg_length", "words_distinct", "words_count", "chars_count")
-  #return(dtm)
-  return(result)
+  new = as.data.frame(new)
+  return(new)
 }
