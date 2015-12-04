@@ -228,6 +228,8 @@ power_features_bigrams = function(book, stopwords = c()){
   dtm = as.data.frame(as.matrix(dtm))
   
   bigrams_usage = apply(dtm, MARGIN=2, FUN=function(x){ sum(!is.na(x) & x > 0) })
+  # exclude bigrams that are included in every file
+  filtered = bigrams_usage[which(bigrams_usage!=nrow(dtm))]
   sorted = sort(bigrams_usage,decreasing=T)[1:2950]
   bigrams_freq = names(sorted)
   dtm = dtm[,bigrams_freq]
