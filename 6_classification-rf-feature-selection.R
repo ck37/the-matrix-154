@@ -258,7 +258,7 @@ features = rownames(rf_varimp[order(rf_varimp[, "MeanDecreaseAccuracy"], decreas
 # library(caret)
 # TODO: use foreach to train on multiple cores and combine the trees later.
 # NOTE: err.rate may be null in that case though.
-total_trees = 300
+total_trees = 500
 trees_per_worker = ceiling(total_trees / trees_per_worker)
 rf = foreach(worker = 1:total_workers, .combine = randomForest::combine) %dopar% {
   #forest = randomForest(data[-idx, -1], data[-idx, 1], mtry = round(sqrt(ncol(data))), ntree = trees_per_worker, importance=T)
@@ -280,7 +280,7 @@ print(round(varimp[order(varimp[, "MeanDecreaseAccuracy"], decreasing=T), ], 2)[
 # Predict separately on holdout sample if using a subset for training and report holdout sample error.
 
 # Save the full model as well as the cross-validation and test-set results.
-save(rf, cv_results, grid_results, rf_varimp, features, file="data/models-rf-feature-selection.RData")
+save(rf, cv_results, grid_results, rf_varimp, features, file="data/models-rf-feature-selection-top2k-v2.RData")
 
 
 #########################################

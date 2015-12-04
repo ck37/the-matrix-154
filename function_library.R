@@ -18,6 +18,7 @@ import_text_documents = function(directory = "", doc_dirs = list(no_type="")) {
   system.time({
     # Recursively load all text files in subdirectories of our main file directory.
     docs = list()
+    # Since disk is the main bottleneck here, multicore processing probably wouldn't help.
     for (type in names(doc_dirs)) {
       docs[[type]] = Corpus(DirSource(paste0(directory, doc_dirs[[type]])))
       cat(paste0("Processed ", type, " in subdir \"", doc_dirs[[type]], "\" and found ", length(docs[[type]]), " documents.\n"))
@@ -60,7 +61,7 @@ load_stopwords = function(input_file = "inbound/common-english-words.txt", outpu
 # Derive a dictionary of words/ bigrams and total number of their appearances through out the whole dataset.
 clean_documents = function(book, stopwords = c()) {
   book = tm_map(book, content_transformer(tolower))
-  book = tm_map(book, removeWords, c('project','gutenberg','ebook','title','author','release','chapter'))
+  book = tm_map(book, removeWords, c('project','gutenberg','ebook','title','author','release','chapter','posting','editor','translator','encoding','ascii','updated'))
   if (length(stopwords) > 0) {
     book  = tm_map(book, removeWords, stopwords)
   }
@@ -75,18 +76,25 @@ clean_documents = function(book, stopwords = c()) {
   return(dtm)
 }
 
-
+# For step 2; docs is a list of matrices loaded in step 1.
 clean_imported_documents = function(docs, stopwords = c()) {
   
   cleaned_docs = list()
   
   # This step is slow. 
-  for (type in names(docs)) {
-    if (type != "no_type") {
-      cat("Cleaning", type, "\n")
+  #foreach (type in names(docs)) %dopar% {
+  system.time({
+    cleaned_docs = foreach (type = names(docs)) %dopar% {
+    #if (type != "no_type") {
+    #  cat("Cleaning", type, "\n")
+    #}
+    #cleaned_docs[[type]] = clean_documents(docs[[type]], stopwords)
+      clean_documents(docs[[type]], stopwords)
     }
-    cleaned_docs[[type]] = clean_documents(docs[[type]], stopwords)
-  }
+  })
+  names(cleaned_docs) = names(docs)
+  # Confirm document dimensions:
+  sapply(cleaned_docs, FUN=dim)
   
   # This creates our target/response vector as a factor with values of child, history, religion, or science.
   targets = NA
@@ -96,13 +104,17 @@ clean_imported_documents = function(docs, stopwords = c()) {
                         FUN=function(doc_type){ rep(doc_type, length.out=nrow(as.matrix(cleaned_docs[[doc_type]])))})))
   } 
   
-  # Combine docs into a single dataframe.
+  # Combine docs into a single dataframe - takes roughly a minute on EC2.
   system.time({
     docs = as.data.frame(as.matrix(do.call(tm:::c.DocumentTermMatrix, cleaned_docs)))
   })
   
   # Fix rownames - remove the .txt suffix from the name.
-  rownames(docs) = gsub("(.*)\\.txt$", "\\1", rownames(docs))
+  #rownames(docs) = gsub("(.*)\\.txt$", "\\1", rownames(docs))
+  rownames(docs) = gsub("\\.txt$", "\\1", rownames(docs))
+  
+  # Confirm that we have no duplicated rownames.
+  length(unique(rownames(docs))) == nrow(docs)
   
   # Make sure that the # of rows in the document corpus equals the length of our target vector.
   # Otherwise stop and give an error.
@@ -111,7 +123,8 @@ clean_imported_documents = function(docs, stopwords = c()) {
   }
   
   # Return our result.
-  return(list(docs=docs, targets=targets))
+  result = list(docs=docs, targets=targets)
+  return(result)
 }
 
 
