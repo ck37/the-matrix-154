@@ -18,7 +18,7 @@ source("function_library.R")
 # Load RF model.
 #load("data/models-rf-2015-12-01-slow.RData")
 #load("data/models-rf-2015-12-02-very-slow.RData")
-load("data/models-rf-feature-selection-top2k.RData")
+load("data/models-rf-feature-selection-top2k-v2.RData")
 
 # Load SVM model.
 #load("data/models-svm-fast.RData")
