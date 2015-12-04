@@ -170,32 +170,6 @@ power_features_sentence = function(doc) {
   return(power)
 }
 
-
-########################## power features bigrams: less than 2980 features ##########################
-### input: tm data
-### output: power feature columns
-library(NLP)
-BigramTokenizer = function(x){
-  unlist(lapply(ngrams(words(x), 2), paste, collapse = " "), use.names = FALSE)
-}
-options(mc.cores=1)
-
-power_features_bigrams = function(book, stopwords = c()){
-  book = tm_map(book, content_transformer(tolower))
-  book = tm_map(book, removePunctuation)
-  book = tm_map(book, removeNumbers)
-  book = tm_map(book, removeWords, c('project','gutenberg','ebook','title','author','release','chapter','posting','editor','translator','encoding','ascii','updated'))
-  if (length(stopwords)>0){
-    book  = tm_map(book, removeWords, stopwords)
-  }
-  book = tm_map(book, stripWhitespace)
-  dtm = DocumentTermMatrix(book,
-                           control = list(tokenize = BigramTokenizer, stopwords=T,stemming=T))
-  dtm = removeSparseTerms(dtm,.99)
-  dtm = as.data.frame(as.matrix(dtm))
-  return(dtm)
-}
-
 ########################## power features from dtm: 6 features ##########################
 ### input: dtm
 ### output: new power features matrix
@@ -229,6 +203,35 @@ power_features_dtm = function(dtm) {
   }
   new = as.data.frame(new)
   return(new)
+}
+
+################ power features bigrams: most frequent 2950 features ###############
+### input: tm data
+### output: power feature columns
+library(NLP)
+BigramTokenizer = function(x){
+  unlist(lapply(ngrams(words(x), 2), paste, collapse = " "), use.names = FALSE)
+}
+options(mc.cores=1)
+
+power_features_bigrams = function(book, stopwords = c()){
+  book = tm_map(book, content_transformer(tolower))
+  book = tm_map(book, removePunctuation)
+  book = tm_map(book, removeNumbers)
+  book = tm_map(book, removeWords, c('project','gutenberg','ebook','title','author','release','chapter','posting','editor','translator','encoding','ascii','updated'))
+  if (length(stopwords)>0){
+    book  = tm_map(book, removeWords, stopwords)
+  }
+  book = tm_map(book, stripWhitespace)
+  dtm = DocumentTermMatrix(book,
+                           control = list(tokenize = BigramTokenizer, stopwords=T,stemming=T))
+  dtm = as.data.frame(as.matrix(dtm))
+  
+  bigrams_usage = apply(dtm, MARGIN=2, FUN=function(x){ sum(!is.na(x) & x > 0) })
+  sorted = sort(bigrams_usage,decreasing=T)[1:2950]
+  bigrams_freq = names(sorted)
+  dtm = dtm[,bigrams_freq]
+  return(dtm)
 }
 
 ########################## Power features matrix ##########################
