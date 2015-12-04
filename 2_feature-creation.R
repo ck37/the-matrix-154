@@ -53,6 +53,19 @@ length(stopwords("english"))
 # Only 70% of the official stopwords are in the tm list, so we'll need to also use this one.
 mean(stopwords %in% stopwords("english"))
 
+library(doMC) # For multicore processing.
+# Setup multicore processing to speed up script execution.
+
+cat("Cores detected:", detectCores(), "\n")
+if (exists("conf")) {
+  registerDoMC(conf$num_cores)
+} else {
+  # Uses half of the available cores by default, which is a good default setting.
+  # On an Intel CPU that will correspond to the actual number of physical CPU cores.
+  registerDoMC()
+}
+getDoParWorkers()
+
 result = clean_imported_documents(docs, stopwords)
 
 docs = result$docs
