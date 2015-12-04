@@ -1,5 +1,5 @@
-load("~/Desktop/154/data/filtered-docs.Rdata")
-book = docs$child[1:3]
+load("~/Desktop/154/data/imported-text-docs.Rdata")
+book = docs$history[1:3]
 
 library(tm)
 library(SnowballC)
