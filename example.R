@@ -1,5 +1,5 @@
 load("~/Desktop/154/data/imported-text-docs.Rdata")
-book = docs$history[1:3]
+book = docs$history[1:10]
 
 library(tm)
 library(SnowballC)
@@ -50,3 +50,8 @@ power_features_bigrams = function(book, stopwords = c()) {
   return(dtm)
 }
 result = power_features_bigrams(book,stopwords)
+View(result)
+
+# 지금 고쳐야하는것: 단어하나짜리들 몇개가 space 때문에 bigram으로 인식되고있는데 어차피 다른파일들에서는 반복되지 않을 것 같아서
+# 필터링 하고나면 없어질거같기도해요
+# 어떻게 필터링해야할지 아이디어좀 ㅠㅠ
