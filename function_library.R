@@ -115,7 +115,7 @@ clean_imported_documents = function(docs, stopwords = c()) {
 }
 
 
-########################## power features sentences ##########################
+########################## power features sentences:  ##########################
 
 ### external function(1): convert_text_to_sentences
 convert_text_to_sentences <- function(text, lang = "en") {
@@ -149,21 +149,21 @@ power_features_sentence = function(doc) {
     sents2 = lapply(sents,remove_punc)
     
     ### number of sentence
-    power5 = length(sents2)
+    power6 = length(sents2)
     
     ### average length of sentence
-    power6 = sum(stri_count(sents2,regex="\\S+"))/length(sents2)
+    power7 = sum(stri_count(sents2,regex="\\S+"))/length(sents2)
     
     ### number of 4-digit number
-    power7 = length(na.omit(str_extract(sents2, "\\d{4}")))
+    power8 = length(na.omit(str_extract(sents2, "\\d{4}")))
     
     ### number of digits
-    power8 = sum(grepl("[[:digit:]]", sents2))
+    power9 = sum(grepl("[[:digit:]]", sents2))
     
     ### 
     
     title = names(book)
-    power[i,] = as.matrix(cbind(power5,power6,power7,power8))
+    power[i,] = as.matrix(cbind(power6,power7,power8,power9))
     rownames(power)[i] = title
   }
   colnames(power) = c("sentence_count","sentence_avg_length","4digit_nums","digit_count")
@@ -171,7 +171,7 @@ power_features_sentence = function(doc) {
 }
 
 
-########################## power features bigrams ##########################
+########################## power features bigrams: 2500 features ##########################
 library(RWeka)
 BigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 2, max = 2))
 options(mc.cores=1)
@@ -191,7 +191,7 @@ power_features_bigrams = function(book, stopwords = c()) {
   return(dtm)
 }
 
-########################## power features from dtm ##########################
+########################## power features from dtm: 5 features ##########################
 ### input: dtm
 ### output: new power features matrix
 power_features_dtm = function(dtm) {
