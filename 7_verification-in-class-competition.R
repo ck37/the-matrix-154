@@ -15,6 +15,12 @@ library(xgboost)
 # Load our main functions.
 source("function_library.R")
 
+verification_dir = "inbound/In-Class Competition/inClassCompetition"
+verification_labels = ""
+
+#verification_dir = "inbound/Practice"
+#verification_labels = "inbound/Practice_label.csv"
+
 # Load RF model.
 #load("data/models-rf-2015-12-01-slow.RData")
 #load("data/models-rf-2015-12-02-very-slow.RData")
@@ -36,11 +42,8 @@ models = list(rf = list(model=rf, export_name="rf_pred.csv")
 #models$svm = NULL
 #models$rf = NULL
 
-#verification_dir = "inbound/Practice"
-#verification_labels = "inbound/Practice_label.csv"
 
-verification_dir = "inbound/In-Class Competition"
-verification_labels = ""
+
 
 # Load the word feature matrix from step 3.
 #load("data/filtered-docs.Rdata")
@@ -76,6 +79,8 @@ feature_matrix = new_docs[, features]
 stopifnot(ncol(feature_matrix) == 2000)
 
 save(feature_matrix, file="exports/feature-matrix.RData")
+#write.table(feature_matrix, file=paste0("exports/feature-matrix.csv"), row.names=F, quote=F, col.names=T, sep=",")
+write.csv(feature_matrix, file="exports/feature-matrix.csv", row.names=F, quote=F, col.names=T, sep=",")
 
 # Confirm that all training doc features exist in the new dataframe.
 # If this stops with an error then we need to fix the script.
