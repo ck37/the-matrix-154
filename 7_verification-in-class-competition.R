@@ -39,7 +39,7 @@ models = list(rf = list(model=rf, export_name="rf_pred.csv")
 #verification_dir = "inbound/Practice"
 #verification_labels = "inbound/Practice_label.csv"
 
-verification_dir = "inbound/Validation"
+verification_dir = "inbound/In-Class Competition"
 verification_labels = ""
 
 # Load the word feature matrix from step 3.
