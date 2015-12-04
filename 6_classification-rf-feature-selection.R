@@ -231,13 +231,14 @@ stopifnot(F)
 # Calculate the mean & sd error rate for each combination of hyperparameters.
 # Do.call is used so that we can group by the column names in the tuning grid.
 # as.name converts the column names from strings to R variable names.
+cols = cv_results[, 1:(ncol(tune_grid) + 2)]
 grouped_data = group_by(cols, ntree, mtry, top_features)
 #grouped_data = as.data.frame(do.call(group_by, args))
 grid_results = as.data.frame(grouped_data %>% summarise(mean_error_rate = mean(error_rate), error_sd=sd(error_rate)))
 
 
 # TODO: Fix this per the GBM code; need to hard code the parameters.
-grid_results = as.data.frame(do.call(group_by, list(cv_results[, 1:(ncol(tune_grid) + 2)], as.name(colnames(tune_grid)))) %>% summarise(mean_error_rate = mean(error_rate), error_sd=sd(error_rate)))
+#grid_results = as.data.frame(do.call(group_by, list(cv_results[, 1:(ncol(tune_grid) + 2)], as.name(colnames(tune_grid)))) %>% summarise(mean_error_rate = mean(error_rate), error_sd=sd(error_rate)))
 
 grid_results
 
@@ -247,14 +248,24 @@ plot(grid_results[, 1], grid_results$mean_error_rate, xlab = "Number of predicto
 
 # Find the hyperparameter combination with the minimum error rate.
 params = grid_results[which.min(grid_results$mean_error_rate), ] 
+cat("Best hyperparameters:\n")
+params
+
+features = rownames(rf_varimp[order(rf_varimp[, "MeanDecreaseAccuracy"], decreasing=T), ])[1:params$top_features]
 
 # Refit the best parameters to the full (non-CV) dataset and save the result.
-# NOTE: if using a subset of the data, it will only retrain on that subset.
 # Save importance also.
 # library(caret)
 # TODO: use foreach to train on multiple cores and combine the trees later.
 # NOTE: err.rate may be null in that case though.
-rf = randomForest(data[idx, -1], data[idx, 1], mtry = best_pred, ntree = rf_ntree, importance=T)
+total_trees = 300
+trees_per_worker = ceiling(total_trees / trees_per_worker)
+rf = foreach(worker = 1:total_workers, .combine = randomForest::combine) %dopar% {
+  #forest = randomForest(data[-idx, -1], data[-idx, 1], mtry = round(sqrt(ncol(data))), ntree = trees_per_worker, importance=T)
+  #forest = randomForest(train_set[, features], train_set[, 1], mtry = params$mtry, ntree = trees_per_worker)
+  forest = randomForest(data[, features], data[, 1], mtry = params$mtry, ntree = trees_per_worker, importance=T)
+  forest
+}
 varimp = importance(rf)
 
 # TODO: attemp to use parRF here so that we can use multiple cores.
@@ -268,26 +279,8 @@ print(round(varimp[order(varimp[, "MeanDecreaseAccuracy"], decreasing=T), ], 2)[
 
 # Predict separately on holdout sample if using a subset for training and report holdout sample error.
 
-# Define test_results in case we already used all data in cross-validation.
-test_results = NA
-if (data_subset_ratio != 1) {
-  pred = predict(rf, newdata = data[-idx, -1])
-  
-  # Overall error: percentage of test observations predicted incorrectly.
-  error_rate = mean(pred != data[-idx, 1])
-  
-  # Calculate the per-class error rates.
-  per_class_error_rate = sapply(target_classes, FUN=function(class) {
-    mean(pred[ data[-idx, 1] == class] != class)
-  })
-  names(per_class_error_rate) = paste0("error_", names(per_class_error_rate))
-  
-  test_results = data.frame(cbind(error_rate, t(per_class_error_rate)))
-  print(test_results)
-}
-
 # Save the full model as well as the cross-validation and test-set results.
-save(rf, cv_results, grid_results, test_results, file="data/models-rf.RData")
+save(rf, cv_results, grid_results, rf_varimp, features, file="data/models-rf-feature-selection.RData")
 
 
 #########################################
