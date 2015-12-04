@@ -1,0 +1,349 @@
+# Log the script's output and messages to a text file.
+sink(paste0(gsub("\\.[^.]+$", "", basename(sys.frame(1)$ofile)), ".log"), append=F, split=T)
+cat("Executing:", sys.frame(1)$ofile, "\nDatetime:", date(), "\n")
+
+# Start timing the script.
+script_timer = proc.time()
+
+# --- End prelude.
+#########################################
+
+library(randomForest)
+library(dplyr)
+library(doMC) # For multicore processing.
+
+# Load the docs file if it doesn't already exist.
+if (!exists("data", inherits=F)) {
+  #load("data/filtered-docs.Rdata")
+  load("data/filtered-docs-low50-high80pct.Rdata")
+  data = cbind(targets, docs)
+  rm(docs)
+  gc()
+}
+
+
+############################################
+# Customize training parameters for slow vs. fast execution.
+
+# Possible speed configurations.
+speed_types = c("instant", "fast", "medium", "slow", "very slow", "ideal")
+# Choose which option you want, based on speed vs. accuracy preference.
+speed = speed_types[5]
+speed = "feature selection"
+cat("Speed configuration:", speed, "\n")
+
+set.seed(5)
+
+if (speed == "instant") {
+  # The fastest possible settings that will yield a result, mainly for debugging purposes.
+  # This should complete in a second or two.
+  
+  # Subset to a random 5% of the data to speed up execution time.
+  data_subset_ratio = 0.05
+  
+  # Number of predictors to choose.
+  mtry_seq = c(5, 10)
+  
+  # Number of trees to fit for RF.
+  rf_ntree = 5
+  
+  # Number of CV folds
+  cv_folds = 2                                     
+} else if (speed == "feature selection") {
+  cv_folds = 1
+  data_subset_ratio = 0.5
+  mtry_seq = c(sqrt(ncol(data)))
+  rf_ntree = 200
+} else if (speed == "fast") {
+  # This configuration takes about two minutes.
+  mtry_seq = c(10, 20)
+  rf_ntree = 25
+  cv_folds = 3
+  # Subset to a random 10% of the data.
+  data_subset_ratio = 0.10
+} else if (speed == "medium") {
+  # This configuration takes about 30 minutes.
+  mtry_seq = round(sqrt(ncol(data)) * c(0.5, 1, 2))
+  rf_ntree = 60
+  # We use 4 here because we have 4 cores right now.
+  cv_folds = 4
+  data_subset_ratio = 0.25
+} else if (speed == "slow") {
+  # Laptop time: 6 hours. EC2 time: TBD.
+  mtry_seq = round(sqrt(ncol(data)) * c(1, 2, 4))
+  rf_ntree = 100
+  # We need to do 10 based on the project definition, even though 8 folds would be preferable.
+  cv_folds = 10
+  data_subset_ratio = 0.5
+} else if (speed == "very slow") {
+  # Laptop time: 16 hours? EC2 time: 5 hours (c4.8xl).
+  # NOTE: we may not have enough memory for mtry = 8 - TBD.
+  mtry_seq = round(sqrt(ncol(data)) * c(4, 8))
+  rf_ntree = 200
+  # We need to do 10 based on the project definition, even though 8 folds would be preferable.
+  #cv_folds = 10
+  # Set to 9 because we have 18 cores on EC2.
+  # cv_folds = 9
+  # Actually we are only using one core per CV thread, so we might as well stick to 10.
+  cv_folds = 10
+  data_subset_ratio = 0.7
+} else {
+  # Unclear how long this would take to complete, but we would want to use Amazon EC2 to run (or Savio).
+  mtry_seq = unique(round(exp(log(ncol(data))*exp(c(-0.96, -0.71, -0.48, -0.4, -0.29, -0.2)))))
+  mtry_seq
+  rf_ntree = 500
+  cv_folds = 10
+  data_subset_ratio = 0.9
+}
+
+
+############################################
+# Setup multicore processing to speed up the model training.
+
+cat("Cores detected:", detectCores(), "\n")
+if (exists("conf")) {
+  registerDoMC(conf$num_cores)
+} else {
+  # Uses half of the available cores by default, which is a good default setting.
+  registerDoMC()
+}
+getDoParWorkers()
+
+############################################
+# Setup cross-validation
+
+# Randomly reorder the dataset, and also potentially down-sample.
+idx = sample(nrow(data), round(nrow(data) * data_subset_ratio))
+
+
+
+# Save the levels of the target variable for use in the CV loop.
+target_classes = levels(data[, 1])
+table(target_classes)
+
+# Fit the RF on the 50% holdout sample for generating the feature ranking.
+# We don't need the err.
+total_trees = 200
+#total_workers = getDoParWorkers()
+# We don't have enough RAM to do the full 18 workers.
+total_workers = 9
+trees_per_worker = ceiling(total_trees / total_workers)
+trees_per_worker
+rf = foreach(worker = 1:total_workers, .combine = randomForest::combine) %dopar% {
+  forest = randomForest(data[-idx, -1], data[-idx, 1], mtry = round(sqrt(ncol(data))), ntree = trees_per_worker, importance=T)
+  forest
+}
+rf_varimp = importance(rf)
+
+# Now determine the parameters to optimize mtry and # of predictors.
+rf_ntree = 200
+cv_folds = 5
+rf_top_features = c(1000, 2000, 3000)
+mtry_seq = round(sqrt(ncol(data)) * c(0.5, 1, 2, 4))
+
+# NOTE: this does not use the full dataset size due to rounding, but the impact is minor.
+samples_per_fold = floor(length(idx) / cv_folds)
+
+############################################
+# RF training, based on the code from discussion section 11.
+
+# Create a hyperparameter training grid to more easily generalize to multiple tuning parameters.
+# tune_grid = expand.grid(mtry = mtry_seq)
+tune_grid = expand.grid(mtry = mtry_seq, ntree = rf_ntree, top_features = rf_top_features)
+tune_grid
+
+# Matrix to record the cross-validation error results.
+# Columns are: hyperparameter combination, CV fold number overall error rate, and per-class error rate.
+cv_results = matrix(NA, nrow(tune_grid) * cv_folds, ncol(tune_grid) + length(target_classes) + 2)
+
+
+# Loop through different num of predict selected in RF 
+system.time({
+  # TODO: foreach over the combination of folds and parameter combinations to better use
+  # high-core count systems (e.g. EC2).
+for (j in 1:nrow(tune_grid)) {
+  params = tune_grid[j, ]
+  cat("Params:\n")
+  print(params)
+  #cat("Mtry:", params[1], "\n")
+  # Loop through k-folds using multicore processing.
+  #for (test_fold in 1:cv_folds) {
+  #cv_data = foreach (test_fold = 1:cv_folds, .combine="rbind") %dopar% {
+  
+  # features = colnames(data[, -1])
+  # Choose the top X features from the varimp on the other.
+  features = rownames(rf_varimp[order(rf_varimp[, "MeanDecreaseAccuracy"], decreasing=T), ])[1:params$top_features]
+  # features = features %in% 
+  # This should be 18.
+  #total_workers = getDoParWorkers()
+  # Set only to 9 to save on memory requirements, esp. when ntrees = 3,000.
+  total_workers = 9
+  trees_per_worker = ceiling(params$ntree / total_workers)
+  trees_per_worker
+  
+  cv_data = foreach (test_fold = 1:cv_folds, .combine="rbind") %do% {
+    # idx for validation set
+    validation_rows = seq((test_fold - 1) * samples_per_fold + 1, test_fold * samples_per_fold)
+    val_idx = idx[validation_rows]
+    # Validation set.
+    val_set = data[val_idx,]
+    # Training set - we need to index within idx due to possible subsampling.
+    train_set = data[idx[-validation_rows],]
+    
+   # rf_cv = randomForest(train_set[, features], train_set[, 1], mtry = params$mtry, ntree = params$ntree)
+    rf_cv = foreach(worker = 1:total_workers, .combine = randomForest::combine) %dopar% {
+      #forest = randomForest(data[-idx, -1], data[-idx, 1], mtry = round(sqrt(ncol(data))), ntree = trees_per_worker, importance=T)
+      forest = randomForest(train_set[, features], train_set[, 1], mtry = params$mtry, ntree = trees_per_worker)
+      forest
+    }
+    
+    cv_pred = predict(rf_cv, newdata = val_set[,features])
+    
+    # Overall error: percentage of test observations predicted incorrectly.
+    error_rate = mean(cv_pred != val_set[, 1])
+    
+    # Calculate the per-class error rates.
+    per_class_error_rate = sapply(target_classes, FUN=function(class) {
+      mean(cv_pred[ val_set[, 1] == class] != class)
+    })
+    names(per_class_error_rate) = paste0("error_", names(per_class_error_rate))
+    
+    results = data.frame(do.call(cbind, c(params, list(test_fold=test_fold, error_rate=error_rate, t(per_class_error_rate)))))
+    print(results)
+    results
+  }
+  # Could re-order by the fold number, but doesn't actually matter.
+  # cv_results = cv_results[order(cv_results[, 1]), ]
+  
+  # Save overall error rate and per-class error rates in a long data frame format.
+  # Use this formula to save the k CV results in the correct rows.
+  cv_results[((j-1)*cv_folds + 1):(j*cv_folds), ] = as.matrix(cv_data)
+}
+})
+colnames(cv_results) = colnames(cv_data)
+
+# Convert from a matrix to a dataframe so that we can reshape the results.
+cv_results = as.data.frame(cv_results)
+
+
+stopifnot(F)
+
+# Calculate the mean & sd error rate for each combination of hyperparameters.
+# Do.call is used so that we can group by the column names in the tuning grid.
+# as.name converts the column names from strings to R variable names.
+grouped_data = group_by(cols, ntree, mtry, top_features)
+#grouped_data = as.data.frame(do.call(group_by, args))
+grid_results = as.data.frame(grouped_data %>% summarise(mean_error_rate = mean(error_rate), error_sd=sd(error_rate)))
+
+
+# TODO: Fix this per the GBM code; need to hard code the parameters.
+grid_results = as.data.frame(do.call(group_by, list(cv_results[, 1:(ncol(tune_grid) + 2)], as.name(colnames(tune_grid)))) %>% summarise(mean_error_rate = mean(error_rate), error_sd=sd(error_rate)))
+
+grid_results
+
+# Plot
+plot(grid_results[, 1], grid_results$mean_error_rate, xlab = "Number of predictors (mtry)", ylab = "Cross-validated error rate",
+     main = "Cross-validated Random Forest", type = "l")
+
+# Find the hyperparameter combination with the minimum error rate.
+params = grid_results[which.min(grid_results$mean_error_rate), ] 
+
+# Refit the best parameters to the full (non-CV) dataset and save the result.
+# NOTE: if using a subset of the data, it will only retrain on that subset.
+# Save importance also.
+# library(caret)
+# TODO: use foreach to train on multiple cores and combine the trees later.
+# NOTE: err.rate may be null in that case though.
+rf = randomForest(data[idx, -1], data[idx, 1], mtry = best_pred, ntree = rf_ntree, importance=T)
+varimp = importance(rf)
+
+# TODO: attemp to use parRF here so that we can use multiple cores.
+# This part is not working right now.
+# control_rf = trainControl(method="none", number=1, repeats=1, returnData = F, classProbs = T, allowParallel = F)
+# model = train(data[idx, -1], data[idx, 1], method="parRF", tuneGrid = expand.grid(mtry = best_pred),
+#   ntree = rf_ntree, importance=T)
+
+# Select the top 30 most important words.
+print(round(varimp[order(varimp[, "MeanDecreaseAccuracy"], decreasing=T), ], 2)[1:30, ])
+
+# Predict separately on holdout sample if using a subset for training and report holdout sample error.
+
+# Define test_results in case we already used all data in cross-validation.
+test_results = NA
+if (data_subset_ratio != 1) {
+  pred = predict(rf, newdata = data[-idx, -1])
+  
+  # Overall error: percentage of test observations predicted incorrectly.
+  error_rate = mean(pred != data[-idx, 1])
+  
+  # Calculate the per-class error rates.
+  per_class_error_rate = sapply(target_classes, FUN=function(class) {
+    mean(pred[ data[-idx, 1] == class] != class)
+  })
+  names(per_class_error_rate) = paste0("error_", names(per_class_error_rate))
+  
+  test_results = data.frame(cbind(error_rate, t(per_class_error_rate)))
+  print(test_results)
+}
+
+# Save the full model as well as the cross-validation and test-set results.
+save(rf, cv_results, grid_results, test_results, file="data/models-rf.RData")
+
+
+#########################################
+# Review accuracy and generate ROC plots.
+
+# Report overall accuracy and accuracy rates per class using OOB.
+# Final accuracy with the maximum number of trees:
+print(rf$err.rate[nrow(rf$err.rate), ])
+
+
+# Plot of error rate across ntrees with out of bag data.
+plot(rf$err.rate[,1], main="RF accuracy using OOB data", type = "l", ylab = "Error rate", xlab = "Number of trees")
+dev.copy(png, "visuals/6-rf-error-rate-overall.png")
+dev.off()
+
+library(reshape2)
+errors_combined = melt(rf$err.rate[, -1], id.vars="X")
+names(errors_combined) = c("ntrees", "type", "error_rate")
+
+# Plot of error rate per class by number of trees.
+library(ggplot2)
+p = ggplot(errors_combined, aes(x = ntrees, y = error_rate, colour=type))
+p + geom_line() + theme_bw()
+dev.copy(png, "visuals/6-rf-error-rate-per-class.png")
+dev.off()
+
+# CK 11/30: Skip for now! Unclear how this would work in a multiclass setting and seems to be optional.
+
+# Generate ROC curves
+# See assignment3_solution.R and assignment4_5.R
+#library(ROCR)
+
+# Predict on holdout set if the data_subset ratio was < 1.
+#if (data_subset_ratio < 1) {
+  # Need to iterate over pairwise comparison of classes. 
+#  library(ri)
+  # Need all permutations with two true values.
+#  pairs = c(T, T, F, F)
+  # Each permutation is a column in this resulting matrix.
+#  pairwise_comparisons = genperms(pairs)
+#}
+
+# TBD.
+
+
+############
+# Cleanup
+
+gc()
+
+# Review script execution time.
+if (exists("script_timer")) {
+  cat("Script execution time:\n")
+  print(proc.time() - script_timer)
+  rm(script_timer)
+}
+
+# Stop logging.
+sink()
