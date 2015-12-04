@@ -18,7 +18,7 @@ source("function_library.R")
 # Load RF model.
 #load("data/models-rf-2015-12-01-slow.RData")
 #load("data/models-rf-2015-12-02-very-slow.RData")
-load("data/models-rf-feature-selection-top2k.RData")
+load("data/models-rf-feature-selection-top2k-v2.RData")
 
 # Load SVM model.
 #load("data/models-svm-fast.RData")
@@ -27,7 +27,7 @@ load("data/models-rf-feature-selection-top2k.RData")
 #load("data/models-gbm-2015-12-03-slow-v1.RData")
 
 # Define the models we want to evaluate.
-models = list(rf = list(model=rf, export_name="rf-export.csv")
+models = list(rf = list(model=rf, export_name="in-class-comp-rf-predictions.csv")
               #svm = list(model=svm, export_name="svm-export.csv",
               #gbm = list(model=gbm, export_name="gbm-export.csv")
 )
@@ -36,11 +36,11 @@ models = list(rf = list(model=rf, export_name="rf-export.csv")
 #models$svm = NULL
 #models$rf = NULL
 
-verification_dir = "inbound/Practice"
-verification_labels = "inbound/Practice_label.csv"
+#verification_dir = "inbound/Practice"
+#verification_labels = "inbound/Practice_label.csv"
 
-#verification_dir = "inbound/Validation"
-#verification_labels = ""
+verification_dir = "inbound/Validation"
+verification_labels = ""
 
 # Load the word feature matrix from step 3.
 #load("data/filtered-docs.Rdata")
@@ -69,6 +69,8 @@ features_to_copy = current_features[current_features %in% colnames(training_docs
 for (feature in features_to_copy) {
   new_docs[, feature] = docs[, feature]
 }
+
+save(new_docs, file="data/in-class-comp-word-feature-matrix.RData")
 
 # Confirm that all training doc features exist in the new dataframe.
 # If this stops with an error then we need to fix the script.
