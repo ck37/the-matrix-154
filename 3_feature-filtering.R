@@ -2,13 +2,11 @@
 sink(paste0(gsub("\\.[^.]+$", "", basename(sys.frame(1)$ofile)), ".log"), append=F, split=T)
 cat("Executing:", sys.frame(1)$ofile, "\nDatetime:", date(), "\n")
 
-# Load the docs file if it doesn't already exist.
-if (!exists("docs")) {
-  load("data/cleaned-docs.Rdata")
-}
+# Load the docs file, even if it already exists because it may the new filtered version.
+load("data/cleaned-docs.Rdata")
 
-# Remove words that are used in at least 80% of documents - 20 words.
-cutoff_high_pct = 0.8
+# Remove words that are used in at least 100% of documents - 0 words.
+cutoff_high_pct = 1
 
 # Remove words that are not in at least 50 documents.
 cutoff_low = 50
