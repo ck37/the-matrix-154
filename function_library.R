@@ -171,32 +171,37 @@ power_features_sentence = function(doc) {
 }
 
 
-########################## power features bigrams: 2500 features ##########################
-library(RWeka)
-BigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 2, max = 2))
+########################## power features bigrams: less than 2980 features ##########################
+### input: tm data
+### output: power feature columns
+library(NLP)
+BigramTokenizer = function(x){
+  unlist(lapply(ngrams(words(x), 2), paste, collapse = " "), use.names = FALSE)
+}
 options(mc.cores=1)
 
-power_features_bigrams = function(book, stopwords = c()) {
+power_features_bigrams = function(book, stopwords = c()){
   book = tm_map(book, content_transformer(tolower))
+  book = tm_map(book, removePunctuation)
+  book = tm_map(book, removeNumbers)
   book = tm_map(book, removeWords, c('project','gutenberg','ebook','title','author','release','chapter','posting','editor','translator','encoding','ascii','updated'))
-  if (length(stopwords) > 0) {
+  if (length(stopwords)>0){
     book  = tm_map(book, removeWords, stopwords)
   }
-  # NOTE: we should double-check this removePunctuation code, because it may remove the punctation
-  # without substituting spaces, which will mess up the words.
+  book = tm_map(book, stripWhitespace)
   dtm = DocumentTermMatrix(book,
-                            control = list(tokenize = BigramTokenizer,tolower=T, stopwords=T, removePunctuation=T, removeNumbers=T, stemming=T))
+                           control = list(tokenize = BigramTokenizer, stopwords=T,stemming=T))
   dtm = removeSparseTerms(dtm,.99)
   dtm = as.data.frame(as.matrix(dtm))
   return(dtm)
 }
 
-########################## power features from dtm: 5 features ##########################
+########################## power features from dtm: 6 features ##########################
 ### input: dtm
 ### output: new power features matrix
 power_features_dtm = function(dtm) {
   
-  new = matrix(NA,nrow=nrow(dtm),ncol=5)
+  new = matrix(NA,nrow=nrow(dtm),ncol=6)
   colnames(new) = c("words_count","chars_count","words_avg_length","words_distinct","sd_words")
   words_chars = nchar(colnames(dtm))
   
@@ -218,7 +223,16 @@ power_features_dtm = function(dtm) {
     mean = sum(words_chars*as.matrix(as.numeric(dtm[i,])))/new[i,1]
     new[i,5] = sqrdmean-(mean^2)
     
+    ### power6: word diversity
+    new[i,6] = new[i,4]/new[i,1]
+    
   }
   new = as.data.frame(new)
   return(new)
 }
+
+########################## Power features matrix ##########################
+
+######################### Word+Power features matrix ########################
+
+
