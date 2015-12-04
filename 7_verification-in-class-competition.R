@@ -113,7 +113,7 @@ for (model_name in names(models)) {
   }
 }
 
-save(models, file="data/model-verification.RData")
+#save(models, file="data/model-verification.RData")
 
 #########################################
 # Cleanup
