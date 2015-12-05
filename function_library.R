@@ -142,7 +142,8 @@ clean_imported_documents = function(docs, stopwords = c()) {
 convert_text_to_sentences <- function(text, lang = "en") {
   sentence_token_annotator <- Maxent_Sent_Token_Annotator(language = lang)
   text <- as.String(text)
-  sentence.boundaries <- annotate(text, sentence_token_annotator)
+  # Need to specify NLP package, because ggplot2 also has an annotate function.
+  sentence.boundaries <- NLP::annotate(text, sentence_token_annotator)
   sentences <- text[sentence.boundaries]
   return(sentences)
 }
@@ -157,37 +158,44 @@ remove_punc = function(x) {
 ### output: 4 columns of power features with rownames=filename
 power_features_sentence = function(doc) {
   n = length(doc)
-  power = matrix(NA,nrow=n,ncol=4,dimnames=list(seq(1,n)))
+  power = matrix(NA, nrow=n, ncol=4, dimnames=list(seq(1, n)))
   
-  for(i in 1:n){
-    book = doc[i]
-    book2 = tm_map(book, content_transformer(tolower))
-    book3 = tm_map(book2, stripWhitespace)
-    book4 = tm_map(book3, stemDocument)
+  # Run this processing outside of the loop to make it faster.
+  books = tm_map(doc, content_transformer(tolower))
+  books = tm_map(books, stripWhitespace)
+  # Stemming takes a particularly long time.
+  books = tm_map(books, stemDocument) 
+ 
+  # TODO: figure out how to remove this For loop to improve speed. 
+  for (i in 1:n) {
     
-    text = as.data.frame(book4)[2]
+    book = books[i]
+    
+    text = as.data.frame(book)[2]
     sents = convert_text_to_sentences(text)
-    sents2 = lapply(sents,remove_punc)
     
-    ### number of sentence
+    # CK: Can we convert this to tm_map(sents, removePunctation)?
+    sents2 = lapply(sents, remove_punc)
+    
+    # Number of sentences.
     power6 = length(sents2)
     
-    ### average length of sentence
-    power7 = sum(stri_count(sents2,regex="\\S+"))/length(sents2)
+    # Average sentence length.
+    power7 = sum(stri_count(sents2, regex="\\S+")) / length(sents2)
     
-    ### number of 4-digit number
+    # Number of 4-digit numbers (years). 
     power8 = length(na.omit(str_extract(sents2, "\\d{4}")))
     
-    ### number of digits
+    # Number of digits.
     power9 = sum(grepl("[[:digit:]]", sents2))
     
     ### 
     
     title = names(book)
-    power[i,] = as.matrix(cbind(power6,power7,power8,power9))
+    power[i,] = as.matrix(cbind(power6, power7, power8, power9))
     rownames(power)[i] = title
   }
-  colnames(power) = c("sentence_count","sentence_avg_length","4digit_nums","digit_count")
+  colnames(power) = c("sentence_count", "sentence_avg_length", "4digit_nums", "digit_count")
   return(power)
 }
 

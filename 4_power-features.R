@@ -37,14 +37,14 @@ getDoParWorkers()
 # Use foreach here so that it can be run on multiple cores.
 # This takes about 58 minutes to execute without multicore processing.
 # TODO: get multicore processing to work.
-#system.time({
+system.time({
   #feature_list = foreach(worker = 1:getDoParWorkers(), .combine=rbind) %do% {
-  sentence_features = foreach(worker = 1:length(names(docs)), .combine="rbind") %do% {
+  sentence_features = foreach(worker = 1:length(names(docs)), .combine = "rbind") %do% {
     #power_features[[type]] = power_features_sentence(docs[[type]])
     result = power_features_sentence(docs[[worker]])
     result
   }
-#})
+})
 
 # Confirm that we created the sentence features successfully.
 stopifnot(class(sentence_features) != "NULL")
@@ -63,6 +63,7 @@ system.time({
   word_features = power_features_dtm(docs)
 })
 
+# Merge docs into a single object to compute bigrams on the full dataset.
 combined_docs = do.call(c, imported_docs)
 class(combined_docs)
 stopwords = load_stopwords()
@@ -71,23 +72,28 @@ system.time({
   bigram_features = power_features_bigrams(combined_docs, stopwords)
 })
 
+# TODO: trigrams!
+
 # Combine the sentence and word power features.
 # TODO: need to make sure that we are combining in the correct order.
-# Otherwise we need to merge on the book name/id.
+# Otherwise we need to merge on the book name/id
 power_features = cbind(sentence_features, word_features, bigram_features)
 
 save(power_features, file="data/power-features.RData")
 
+# Now load the filtered word features to create the combined feature matrix.
+load("data/filtered-docs.Rdata")
+
 combined_features = cbind(docs, power_features)
+
 save(combined_features, file="data/combined-features.RData")
 
-rm(docs, imported_docs, combined_docs, combined_features)
-
-#merge(d, e, by=0, all=TRUE) 
+# Cleanup objects
+rm(docs, imported_docs, combined_docs, combined_features, power_features, bigram_features, word_features)
 
 
 #########################################
-# Cleanup
+# Epilogue -- 
 
 gc()
 
