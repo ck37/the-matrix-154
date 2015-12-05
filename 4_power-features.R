@@ -47,11 +47,11 @@ if (exists("conf")) {
 getDoParWorkers()
 
 # Use foreach here so that it can be run on multiple cores.
-# This takes about 53 minutes to execute without multicore processing.
+# This takes about 58 minutes to execute without multicore processing.
 # TODO: get multicore processing to work.
-system.time({
-  #feature_list = foreach(worker = 1:getDoParWorkers(), .combine=rbind) %dopar% {
-  sentence_features = foreach(worker = 1:getDoParWorkers(), .combine="rbind") %do% {
+#system.time({
+  #feature_list = foreach(worker = 1:getDoParWorkers(), .combine=rbind) %do% {
+  sentence_features = foreach(worker = 1:length(names(docs)), .combine="rbind") %do% {
     #cat("Worker:", worker, "\n")
   #feature_list = foreach(doc = docs) %do% {
     #cat("Processing", type, "\n")
@@ -61,7 +61,7 @@ system.time({
     #power_features_sentence(doc)
     result
   }
-})
+#})
 
 # Confirm that we created the sentence features successfully.
 stopifnot(class(sentence_features) != "NULL")

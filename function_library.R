@@ -189,7 +189,7 @@ power_features_sentence = function(doc) {
 power_features_dtm = function(dtm) {
   
   new = matrix(NA,nrow=nrow(dtm),ncol=6)
-  colnames(new) = c("words_count","chars_count","words_avg_length","words_distinct","sd_words")
+  colnames(new) = c("words_count","chars_count","words_avg_length","words_distinct","sd_words", "word_diversity")
   words_chars = nchar(colnames(dtm))
   
   for(i in 1:nrow(dtm)){
@@ -200,18 +200,19 @@ power_features_dtm = function(dtm) {
     new[i,2] = as.numeric(t(as.matrix(words_chars))%*%as.matrix(as.numeric(dtm[i,])))
     
     ### power3: returns the vector of average word length of each txt file
-    new[i,3] = new[i,2]/new[i,1]
+    # Use max so that if there are 0 distinct words we don't try to divide by 0.
+    new[i,3] = new[i,2]/max(new[i,1], 1)
     
     ### power4: number of unique words
     new[i,4] = length(which(as.numeric(dtm[i,])!=0))
     
     ### power5: standard deviation of word length
-    sqrdmean = sum(as.matrix(words_chars^2)*as.matrix(as.numeric(dtm[i,])))/new[i,1]
-    mean = sum(words_chars*as.matrix(as.numeric(dtm[i,])))/new[i,1]
+    sqrdmean = sum(as.matrix(words_chars^2)*as.matrix(as.numeric(dtm[i,])))/max(new[i,1], 1)
+    mean = sum(words_chars*as.matrix(as.numeric(dtm[i,])))/max(new[i,1], 1)
     new[i,5] = sqrdmean-(mean^2)
     
     ### power6: word diversity
-    new[i,6] = new[i,4]/new[i,1]
+    new[i,6] = new[i,4]/max(new[i,1], 1)
     
   }
   new = as.data.frame(new)
@@ -227,11 +228,20 @@ BigramTokenizer = function(x){
 }
 options(mc.cores=1)
 
+gutenberg = c('project','gutenberg','ebook','anyone anywhere','no cost','re-use',
+              'license','online','wwwgutenbergorg','wwwgutenbergnet','language english','ascii',
+              'httpwwwpgdpnet','first edition','second edition','title',
+              'author','release','chapter','posting','editor','translator','encoding','updated',
+              'anyone anywhere', 'at no cost and with almost', 'restrictions whatsoever','you may copy it',
+              'give it away', 'reuse it', 'under the terms', 'license included',
+              'distributed','proofread','proofreading team','character set','encoding','usascii')
+
 power_features_bigrams = function(book, stopwords = c()){
   book = tm_map(book, content_transformer(tolower))
   book = tm_map(book, removePunctuation)
+  book = tm_map(book, removeWords, gutenberg)  
   book = tm_map(book, removeNumbers)
-  book = tm_map(book, removeWords, c('project','gutenberg','ebook','title','author','release','chapter','posting','editor','translator','encoding','ascii','updated'))
+  
   if (length(stopwords)>0){
     book  = tm_map(book, removeWords, stopwords)
   }
@@ -239,11 +249,9 @@ power_features_bigrams = function(book, stopwords = c()){
   dtm = DocumentTermMatrix(book,
                            control = list(tokenize = BigramTokenizer, stopwords=T,stemming=T))
   dtm = as.data.frame(as.matrix(dtm))
-  
   bigrams_usage = apply(dtm, MARGIN=2, FUN=function(x){ sum(!is.na(x) & x > 0) })
-  # exclude bigrams that are included in every file
   filtered = bigrams_usage[which(bigrams_usage!=nrow(dtm))]
-  sorted = sort(bigrams_usage,decreasing=T)[1:2950]
+  sorted = sort(filtered,decreasing=T)[1:2950]
   bigrams_freq = names(sorted)
   dtm = dtm[,bigrams_freq]
   return(dtm)
