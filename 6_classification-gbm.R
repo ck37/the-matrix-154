@@ -73,7 +73,7 @@ if (speed == "instant") {
   gbm_ntrees = c(2, 3)
   gbm_depth = c(1, 2)
   #gbm_shrinkage = c(0.1, 0.001)
-  gbm_shrinkage = c(0.3)
+  gbm_shrinkage = c(0.7, 0.5)
   #gbm_minobspernode = c(5, 10)
   gbm_minobspernode = c(10)
   

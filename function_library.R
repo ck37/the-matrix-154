@@ -89,7 +89,18 @@ clean_imported_documents = function(docs, stopwords = c()) {
     #  cat("Cleaning", type, "\n")
     #}
     #cleaned_docs[[type]] = clean_documents(docs[[type]], stopwords)
-      clean_documents(docs[[type]], stopwords)
+      doc_set = clean_documents(docs[[type]], stopwords)
+      
+      # Fix rownames - remove the .txt suffix from the name.
+      rownames(doc_set) = gsub("\\.txt$", "", rownames(doc_set))
+      
+      # Prepend the document class to reduce chance of duplicate rownames.
+      # But don't do this if we have only a single document class (e.g. no_class).
+      if (length(docs) > 1) {
+        rownames(doc_set) = paste0(type, "_", rownames(doc_set))
+      }
+      
+      doc_set
     }
   })
   names(cleaned_docs) = names(docs)
@@ -109,9 +120,6 @@ clean_imported_documents = function(docs, stopwords = c()) {
     docs = as.data.frame(as.matrix(do.call(tm:::c.DocumentTermMatrix, cleaned_docs)))
   })
   
-  # Fix rownames - remove the .txt suffix from the name.
-  #rownames(docs) = gsub("(.*)\\.txt$", "\\1", rownames(docs))
-  rownames(docs) = gsub("\\.txt$", "\\1", rownames(docs))
   
   # Confirm that we have no duplicated rownames.
   length(unique(rownames(docs))) == nrow(docs)
