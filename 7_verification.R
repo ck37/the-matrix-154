@@ -23,7 +23,8 @@ source("function_library.R")
 #load("data/models-svm-fast.RData")
 
 # Load GBM model
-load("data/models-gbm-2015-12-03-slow-v1.RData")
+#load("data/models-gbm-2015-12-03-slow-v1.RData")
+load("data/models-gbm-2015-12-05-slow-sentences.RData")
 
 # Define the models we want to evaluate.
 models = list(#rf = list(model=rf, export_name="rf-export.csv"),
@@ -35,20 +36,38 @@ models = list(#rf = list(model=rf, export_name="rf-export.csv"),
 models$svm = NULL
 models$rf = NULL
 
-#verification_dir = "inbound/Practice"
-#verification_labels = "inbound/Practice_label.csv"
+verification_dir = "inbound/Practice"
+verification_labels = "inbound/Practice_label.csv"
 
-verification_dir = "inbound/Validation"
-verification_labels = ""
+#verification_dir = "inbound/Validation"
+#verification_labels = ""
 
 # Load the word feature matrix from step 3.
 load("data/filtered-docs.Rdata")
-training_docs = docs
+#load("data/filtered-docs-low50-high80pct.Rdata")
+#training_docs = docs
+
+load("data/power-features.RData")
+#data = cbind(targets, docs)
+training_docs = cbind(docs, power_features)
 
 # Load practice verification set.
 imported_docs = import_text_documents(verification_dir)
-results = clean_imported_documents(imported_docs, load_stopwords())
+stopwords = load_stopwords()
+results = clean_imported_documents(imported_docs, stopwords)
 docs = results$docs
+
+# This should be 1.
+length(imported_docs)
+
+# Add sentence features.
+sentence_features = power_features_sentence(imported_docs[[1]])
+
+# Add word features.
+word_features = power_features_dtm(docs)
+
+# Combine into a merged dataframe.
+docs = cbind(docs, sentence_features, word_features)
 
 # Re-sort documents by converting filename to an ID.
 docs$id = as.numeric(rownames(docs))
@@ -56,8 +75,7 @@ docs$id = as.numeric(rownames(docs))
 docs = docs[order(docs$id), ]
 
 
-
-# Ensure that word features are the same between the two corpuses.
+# Ensure that features are the same between the two corpuses.
 # Initialize all features to 0.
 new_docs = as.data.frame(matrix(0, nrow=nrow(docs), ncol=ncol(training_docs)))
 colnames(new_docs)  = colnames(training_docs)

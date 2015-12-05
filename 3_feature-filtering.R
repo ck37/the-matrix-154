@@ -2,6 +2,12 @@
 sink(paste0(gsub("\\.[^.]+$", "", basename(sys.frame(1)$ofile)), ".log"), append=F, split=T)
 cat("Executing:", sys.frame(1)$ofile, "\nDatetime:", date(), "\n")
 
+# Start timing the script.
+script_timer = proc.time()
+
+# --- End prelude.
+#########################################
+
 # Load the docs file, even if it already exists because it may the new filtered version.
 load("data/cleaned-docs.Rdata")
 
@@ -50,18 +56,26 @@ hist(word_usage, breaks=30, main="Documents using the word (pruned)")
 dev.copy(png, "visuals/3-feature-filtering-histogram-pruned.png")
 dev.off()
 
-# Clean up environment.
-rm(cutoff_high, cutoff_low, word_usage)
-
 # Final dimensions.
 dim(docs)
-
-
 
 # Save the result.
 save(docs, targets, file="data/filtered-docs.Rdata")
 
+# Clean up environment.
+rm(cutoff_high, cutoff_low, word_usage, cutoff_high_pct, targets, docs)
+
+#########################################
+# Epilogue -- 
+
 gc()
+
+# Review script execution time.
+if (exists("script_timer")) {
+  cat("Script execution time:\n")
+  print(proc.time() - script_timer)
+  rm(script_timer)
+}
 
 # Stop logging.
 sink()

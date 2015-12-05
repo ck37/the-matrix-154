@@ -61,7 +61,7 @@ load_stopwords = function(input_file = "inbound/common-english-words.txt", outpu
 # Derive a dictionary of words/ bigrams and total number of their appearances through out the whole dataset.
 clean_documents = function(book, stopwords = c()) {
   book = tm_map(book, content_transformer(tolower))
-  book = tm_map(book, removeWords, c('project','gutenberg','ebook','title','author','release','chapter','posting','editor','translator','encoding','ascii','updated'))
+  book = tm_map(book, removeWords, gutenberg)
   if (length(stopwords) > 0) {
     book  = tm_map(book, removeWords, stopwords)
   }
@@ -89,7 +89,18 @@ clean_imported_documents = function(docs, stopwords = c()) {
     #  cat("Cleaning", type, "\n")
     #}
     #cleaned_docs[[type]] = clean_documents(docs[[type]], stopwords)
-      clean_documents(docs[[type]], stopwords)
+      doc_set = clean_documents(docs[[type]], stopwords)
+      
+      # Fix rownames - remove the .txt suffix from the name.
+      rownames(doc_set) = gsub("\\.txt$", "", rownames(doc_set))
+      
+      # Prepend the document class to reduce chance of duplicate rownames.
+      # But don't do this if we have only a single document class (e.g. no_class).
+      if (length(docs) > 1) {
+        rownames(doc_set) = paste0(type, "_", rownames(doc_set))
+      }
+      
+      doc_set
     }
   })
   names(cleaned_docs) = names(docs)
@@ -109,9 +120,6 @@ clean_imported_documents = function(docs, stopwords = c()) {
     docs = as.data.frame(as.matrix(do.call(tm:::c.DocumentTermMatrix, cleaned_docs)))
   })
   
-  # Fix rownames - remove the .txt suffix from the name.
-  #rownames(docs) = gsub("(.*)\\.txt$", "\\1", rownames(docs))
-  rownames(docs) = gsub("\\.txt$", "\\1", rownames(docs))
   
   # Confirm that we have no duplicated rownames.
   length(unique(rownames(docs))) == nrow(docs)
@@ -131,11 +139,12 @@ clean_imported_documents = function(docs, stopwords = c()) {
 ########################## power features sentences:  ##########################
 
 ### external function(1): convert_text_to_sentences
-convert_text_to_sentences <- function(text, lang = "en") {
-  sentence_token_annotator <- Maxent_Sent_Token_Annotator(language = lang)
+convert_text_to_sentences = function(text, lang = "en") {
+  sentence_token_annotator = Maxent_Sent_Token_Annotator(language = lang)
   text <- as.String(text)
-  sentence.boundaries <- annotate(text, sentence_token_annotator)
-  sentences <- text[sentence.boundaries]
+  # Need to specify NLP package, because ggplot2 also has an annotate function.
+  sentence.boundaries = NLP::annotate(text, sentence_token_annotator)
+  sentences = text[sentence.boundaries]
   return(sentences)
 }
 
@@ -149,37 +158,44 @@ remove_punc = function(x) {
 ### output: 4 columns of power features with rownames=filename
 power_features_sentence = function(doc) {
   n = length(doc)
-  power = matrix(NA,nrow=n,ncol=4,dimnames=list(seq(1,n)))
+  power = matrix(NA, nrow = n, ncol=4, dimnames = list(seq(1, n)))
   
-  for(i in 1:n){
-    book = doc[i]
-    book2 = tm_map(book, content_transformer(tolower))
-    book3 = tm_map(book2, stripWhitespace)
-    book4 = tm_map(book3, stemDocument)
+  # Run this processing outside of the loop to make it faster.
+  books = tm_map(doc, content_transformer(tolower))
+  books = tm_map(books, stripWhitespace)
+  # Stemming takes a particularly long time.
+  books = tm_map(books, stemDocument) 
+ 
+  # TODO: figure out how to remove this For loop to improve speed. 
+  for (i in 1:n) {
     
-    text = as.data.frame(book4)[2]
+    book = books[i]
+    
+    text = as.data.frame(book)[2]
     sents = convert_text_to_sentences(text)
-    sents2 = lapply(sents,remove_punc)
     
-    ### number of sentence
+    # CK: Can we convert this to tm_map(sents, removePunctation)?
+    sents2 = lapply(sents, remove_punc)
+    
+    # Number of sentences.
     power6 = length(sents2)
     
-    ### average length of sentence
-    power7 = sum(stri_count(sents2,regex="\\S+"))/length(sents2)
+    # Average sentence length.
+    power7 = sum(stri_count(sents2, regex="\\S+")) / length(sents2)
     
-    ### number of 4-digit number
+    # Number of 4-digit numbers (years). 
     power8 = length(na.omit(str_extract(sents2, "\\d{4}")))
     
-    ### number of digits
+    # Number of digits.
     power9 = sum(grepl("[[:digit:]]", sents2))
     
     ### 
     
     title = names(book)
-    power[i,] = as.matrix(cbind(power6,power7,power8,power9))
+    power[i,] = as.matrix(cbind(power6, power7, power8, power9))
     rownames(power)[i] = title
   }
-  colnames(power) = c("sentence_count","sentence_avg_length","4digit_nums","digit_count")
+  colnames(power) = c("sentence_count", "sentence_avg_length", "4digit_nums", "digit_count")
   return(power)
 }
 
@@ -207,7 +223,8 @@ power_features_dtm = function(dtm) {
     new[i,4] = length(which(as.numeric(dtm[i,])!=0))
     
     ### power5: standard deviation of word length
-    sqrdmean = sum(as.matrix(words_chars^2)*as.matrix(as.numeric(dtm[i,])))/max(new[i,1], 1)
+    # CK: why not just use the sd() function here?
+    sqrdmean = sum(as.matrix(words_chars^2) * as.matrix(as.numeric(dtm[i,])))/max(new[i,1], 1)
     mean = sum(words_chars*as.matrix(as.numeric(dtm[i,])))/max(new[i,1], 1)
     new[i,5] = sqrdmean-(mean^2)
     
@@ -223,9 +240,24 @@ power_features_dtm = function(dtm) {
 ### input: tm data
 ### output: power feature columns
 library(NLP)
-BigramTokenizer = function(x){
-  unlist(lapply(ngrams(words(x), 2), paste, collapse = " "), use.names = FALSE)
+
+BigramTokenizer = function(x, ngrams = 2) {
+  NgramTokenizer(x, ngrams)
 }
+
+# Separate function because it's unclear how to change a parameter in the DocumentTermMatrix call.
+TrigramTokenizer = function(x, ngrams = 3) {
+  NgramTokenizer(x, ngrams)
+}
+
+
+# Change ngrams to 3 when calling to get trigrams.
+NgramTokenizer = function(x, ngrams = 2) {
+  # Specify NLP package because qdap also provides the ngrams function.
+  unlist(lapply(NLP::ngrams(words(x), ngrams), paste, collapse = " "), use.names = FALSE)
+}
+
+# Specify core to prevent a bug when multiple cores are used.
 options(mc.cores=1)
 
 gutenberg = c('project','gutenberg','ebook','anyone anywhere','no cost','re-use',
@@ -236,24 +268,53 @@ gutenberg = c('project','gutenberg','ebook','anyone anywhere','no cost','re-use'
               'give it away', 'reuse it', 'under the terms', 'license included',
               'distributed','proofread','proofreading team','character set','encoding','usascii')
 
-power_features_bigrams = function(book, stopwords = c()){
+power_features_ngrams = function(book, stopwords = c(), ngrams = 2, min_sparsity = 0.99) {
   book = tm_map(book, content_transformer(tolower))
   book = tm_map(book, removePunctuation)
   book = tm_map(book, removeWords, gutenberg)  
   book = tm_map(book, removeNumbers)
   
-  if (length(stopwords)>0){
+  if (length(stopwords) > 0) {
     book  = tm_map(book, removeWords, stopwords)
   }
   book = tm_map(book, stripWhitespace)
-  dtm = DocumentTermMatrix(book,
-                           control = list(tokenize = BigramTokenizer, stopwords=T,stemming=T))
-  dtm = as.data.frame(as.matrix(dtm))
-  bigrams_usage = apply(dtm, MARGIN=2, FUN=function(x){ sum(!is.na(x) & x > 0) })
-  filtered = bigrams_usage[which(bigrams_usage!=nrow(dtm))]
-  sorted = sort(filtered,decreasing=T)[1:2950]
-  bigrams_freq = names(sorted)
-  dtm = dtm[,bigrams_freq]
+  
+  # Generate all ngrams as features.
+  
+  # Choose which function to pass because it's unclear how we would change an argument.
+  if (ngrams == 3) {
+    f = TrigramTokenizer
+  } else {
+    f = BigramTokenizer
+  }
+  
+  dtm_ngrams = DocumentTermMatrix(book,
+                           control = list(tokenize = f, stopwords=T, stemming=T))
+  
+  # We have to removeSparseTerm before converting to a matrix because there are too many cells otherwise (> a billion).
+  # This is a loose restriction - bigram must be used in at least 1% of documents.
+  dtm_nosparse = removeSparseTerms(dtm_ngrams, min_sparsity)
+  
+  # Confirm that we did not remove every bigram.
+  stopifnot(dtm_nosparse$ncol > 0)
+  
+  dtm = as.data.frame(as.matrix(dtm_nosparse))
+  
+  # Identify how many docs use each n-gram.
+  usage = apply(dtm, MARGIN=2, FUN=function(x){ sum(!is.na(x) & x > 0) })
+  
+  # Look at the top 50 bigrams
+  sort(usage, decreasing=T)[1:50]
+  
+  # Exclude bigrams that are used in every document.
+  # filtered = bigrams_usage[bigrams_usage != nrow(dtm)]
+  # filtered = bigrams_usage
+  
+  # Choose the top X bigrams based on how many docs they are used in.
+  #sorted = sort(filtered, decreasing=T)[1:2950]
+  #bigrams_freq = names(sorted)
+  #dtm = dtm[, bigrams_freq]
+  
   return(dtm)
 }
 

@@ -23,18 +23,6 @@ load("data/imported-text-docs.Rdata")
 
 source("function_library.R")
 
-# Change to true to run the sample code, or just execute the lines manually.
-if (F) {
-  # sample data to play with
-  sample = docs$child[1:3]
-
-  # create_power_features(step1[1])
-
-  sample_result = as.data.frame(power_features_sentence(sample))
-}
-
-power_features = list()
-
 # Setup multicore processing to speed up the processing.
 library(doMC)
 cat("Cores detected:", detectCores(), "\n")
@@ -49,61 +37,65 @@ getDoParWorkers()
 # Use foreach here so that it can be run on multiple cores.
 # This takes about 58 minutes to execute without multicore processing.
 # TODO: get multicore processing to work.
-#system.time({
+system.time({
   #feature_list = foreach(worker = 1:getDoParWorkers(), .combine=rbind) %do% {
-  sentence_features = foreach(worker = 1:length(names(docs)), .combine="rbind") %do% {
-    #cat("Worker:", worker, "\n")
-  #feature_list = foreach(doc = docs) %do% {
-    #cat("Processing", type, "\n")
-    #cat("Processing doc type\n")
+  sentence_features = foreach(worker = 1:length(names(docs)), .combine = "rbind") %do% {
     #power_features[[type]] = power_features_sentence(docs[[type]])
     result = power_features_sentence(docs[[worker]])
-    #power_features_sentence(doc)
     result
   }
-#})
+})
 
 # Confirm that we created the sentence features successfully.
 stopifnot(class(sentence_features) != "NULL")
 
-# Re-save the outcome names.
-#names(feature_list) = names(docs)
-
-# Double-check dimensions of the result.
-#sapply(feature_list, FUN=dim)
-
-# Confirm that it corresponds with dimensions of the input doc list.
-#sapply(docs, FUN=length)
-
-# Convert list to a matrix that we can cbind to the word feature matrix.
-#sentence_features = do.call(rbind, feature_list)
 dim(sentence_features)
 # TODO: confirm that we get the results in the exactly correct order.
+
+# Save this for ngram features.
+imported_docs = docs
 
 load("data/cleaned-docs.Rdata")
 
 # Run the dtm power features on the word feature dataframe.
-# This takes an incredibly long time to execute (> 4 hours) - unclear how long it actually takes to finish.
-word_features = NA
-# This is disabled for now because it's too slow.
-if (F) {
-  system.time({
-    word_features = power_features_dtm(docs)
-  })
-}
+# This takes ~3 hours to finish on EC2.
+system.time({
+  word_features = power_features_dtm(docs)
+})
+
+# Merge docs into a single object to compute bigrams on the full dataset.
+combined_docs = do.call(c, imported_docs)
+class(combined_docs)
+stopwords = load_stopwords()
+
+system.time({
+  bigram_features = power_features_ngrams(combined_docs, stopwords, ngrams = 2)
+})
+
+system.time({
+  trigram_features = power_features_ngrams(combined_docs, stopwords, ngrams = 3)
+})
 
 # Combine the sentence and word power features.
 # TODO: need to make sure that we are combining in the correct order.
-# Otherwise we need to merge on the book name/id.
-power_features = cbind(sentence_features, word_features)
+# Otherwise we need to merge on the book name/id
+power_features = cbind(sentence_features, word_features, bigram_features)
 
 save(power_features, file="data/power-features.RData")
 
-#merge(d, e, by=0, all=TRUE) 
+# Now load the filtered word features to create the combined feature matrix.
+load("data/filtered-docs.Rdata")
+
+combined_features = cbind(docs, power_features)
+
+save(combined_features, file="data/combined-features.RData")
+
+# Cleanup objects
+rm(docs, imported_docs, combined_docs, combined_features, power_features, bigram_features, word_features)
 
 
 #########################################
-# Cleanup
+# Epilogue -- 
 
 gc()
 
