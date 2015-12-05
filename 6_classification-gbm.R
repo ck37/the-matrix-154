@@ -20,6 +20,7 @@ library(doMC) # For multicore processing.
 #if (!exists("data", inherits=F)) {
 if (T) {
   load("data/filtered-docs.Rdata")
+  #load("data/filtered-docs-low50-high80pct.Rdata")
   #load("data/sentence-features.RData")
   load("data/power-features.RData")
   #data = cbind(targets, docs)
@@ -36,7 +37,7 @@ if (T) {
 # Possible speed configurations.
 speed_types = c("instant", "fast", "medium", "slow", "very slow", "ideal")
 # Choose which option you want, based on speed vs. accuracy preference.
-speed = speed_types[4]
+speed = speed_types[5]
 cat("Speed configuration:", speed, "\n")
 
 set.seed(5)
@@ -250,10 +251,11 @@ system.time({
     }
     # Could re-order by the fold number, but doesn't actually matter.
     # cv_results = cv_results[order(cv_results[, 1]), ]
+    cat("Average error rate:", mean(cv_results[, "error_rate"]), "\n\n")
     
     # Save overall error rate and per-class error rates in a long data frame format.
     # Use this formula to save the k CV results in the correct rows.
-    cv_results[((j-1)*cv_folds + 1):(j*cv_folds), ] = as.matrix(cv_data)
+    cv_results[((j - 1) * cv_folds + 1):(j * cv_folds), ] = as.matrix(cv_data)
   }
 })
 colnames(cv_results) = colnames(cv_data)
