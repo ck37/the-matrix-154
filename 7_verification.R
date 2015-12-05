@@ -75,7 +75,7 @@ docs$id = as.numeric(rownames(docs))
 docs = docs[order(docs$id), ]
 
 
-# Ensure that word features are the same between the two corpuses.
+# Ensure that features are the same between the two corpuses.
 # Initialize all features to 0.
 new_docs = as.data.frame(matrix(0, nrow=nrow(docs), ncol=ncol(training_docs)))
 colnames(new_docs)  = colnames(training_docs)
