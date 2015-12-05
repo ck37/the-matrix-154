@@ -200,18 +200,19 @@ power_features_dtm = function(dtm) {
     new[i,2] = as.numeric(t(as.matrix(words_chars))%*%as.matrix(as.numeric(dtm[i,])))
     
     ### power3: returns the vector of average word length of each txt file
-    new[i,3] = new[i,2]/new[i,1]
+    # Use max so that if there are 0 distinct words we don't try to divide by 0.
+    new[i,3] = new[i,2]/max(new[i,1], 1)
     
     ### power4: number of unique words
     new[i,4] = length(which(as.numeric(dtm[i,])!=0))
     
     ### power5: standard deviation of word length
-    sqrdmean = sum(as.matrix(words_chars^2)*as.matrix(as.numeric(dtm[i,])))/new[i,1]
-    mean = sum(words_chars*as.matrix(as.numeric(dtm[i,])))/new[i,1]
+    sqrdmean = sum(as.matrix(words_chars^2)*as.matrix(as.numeric(dtm[i,])))/max(new[i,1], 1)
+    mean = sum(words_chars*as.matrix(as.numeric(dtm[i,])))/max(new[i,1], 1)
     new[i,5] = sqrdmean-(mean^2)
     
     ### power6: word diversity
-    new[i,6] = new[i,4]/new[i,1]
+    new[i,6] = new[i,4]/max(new[i,1], 1)
     
   }
   new = as.data.frame(new)
