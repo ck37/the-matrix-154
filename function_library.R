@@ -262,6 +262,7 @@ power_features_bigrams = function(book, stopwords = c()) {
                            control = list(tokenize = BigramTokenizer, stopwords=T, stemming=T))
   
   # We have to removeSparseTerm before converting to a matrix because there are too many cells otherwise (> a billion).
+  # This is a loose restriction - bigram must be used in at least 1% of documents.
   dtm_nosparse = removeSparseTerms(dtm_bigrams, 0.99)
   
   # Confirm that we did not remove every bigram.
@@ -272,14 +273,17 @@ power_features_bigrams = function(book, stopwords = c()) {
   # Identify how many docs use each bigram.
   bigrams_usage = apply(dtm, MARGIN=2, FUN=function(x){ sum(!is.na(x) & x > 0) })
   
+  # Look at the top 50 bigrams
+  sort(bigrams_usage, decreasing=T)[1:50]
+  
   # Exclude bigrams that are used in every document.
   # filtered = bigrams_usage[bigrams_usage != nrow(dtm)]
-  filtered = bigrams_usage
+  # filtered = bigrams_usage
   
   # Choose the top X bigrams based on how many docs they are used in.
-  sorted = sort(filtered, decreasing=T)[1:2950]
-  bigrams_freq = names(sorted)
-  dtm = dtm[, bigrams_freq]
+  #sorted = sort(filtered, decreasing=T)[1:2950]
+  #bigrams_freq = names(sorted)
+  #dtm = dtm[, bigrams_freq]
   
   return(dtm)
 }
