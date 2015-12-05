@@ -65,9 +65,10 @@ system.time({
 
 combined_docs = do.call(c, imported_docs)
 class(combined_docs)
+stopwords = load_stopwords()
 
 system.time({
-  bigram_features = power_features_bigrams(combined_docs)
+  bigram_features = power_features_bigrams(combined_docs, stopwords)
 })
 
 # Combine the sentence and word power features.
