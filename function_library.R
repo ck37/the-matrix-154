@@ -293,6 +293,7 @@ power_features_ngrams = function(book, stopwords = c(), ngrams = 2, min_sparsity
   
   # We have to removeSparseTerm before converting to a matrix because there are too many cells otherwise (> a billion).
   # This is a loose restriction - bigram must be used in at least 1% of documents.
+  # TODO: may need to tweak this for prediction/verification data - don't want to remove training bigrams.
   dtm_nosparse = removeSparseTerms(dtm_ngrams, min_sparsity)
   
   # Confirm that we did not remove every bigram.

@@ -68,18 +68,25 @@ combined_docs = do.call(c, imported_docs)
 class(combined_docs)
 stopwords = load_stopwords()
 
+# This takes 29 minutes on my laptop, single core.
 system.time({
   bigram_features = power_features_ngrams(combined_docs, stopwords, ngrams = 2)
 })
 
+dim(bigram_features)
+
+# This takes 29 minutes on my laptop, single core.
+# TODO: many of these trigrams are from gutenberg legal disclaimer text - should put as stopwords or otherwise remove full disclaimer.
 system.time({
   trigram_features = power_features_ngrams(combined_docs, stopwords, ngrams = 3)
 })
 
+dim(trigram_features)
+
 # Combine the sentence and word power features.
 # TODO: need to make sure that we are combining in the correct order.
 # Otherwise we need to merge on the book name/id
-power_features = cbind(sentence_features, word_features, bigram_features)
+power_features = cbind(sentence_features, word_features, bigram_features, trigram_features)
 
 save(power_features, file="data/power-features.RData")
 
@@ -91,7 +98,7 @@ combined_features = cbind(docs, power_features)
 save(combined_features, file="data/combined-features.RData")
 
 # Cleanup objects
-rm(docs, imported_docs, combined_docs, combined_features, power_features, bigram_features, word_features)
+rm(docs, imported_docs, combined_docs, combined_features, power_features, bigram_features, trigram_features, word_features)
 
 
 #########################################
