@@ -17,9 +17,14 @@ library(dplyr)
 library(doMC) # For multicore processing.
 
 # Load the docs file if it doesn't already exist.
-if (!exists("data", inherits=F)) {
+#if (!exists("data", inherits=F)) {
+if (T) {
   load("data/filtered-docs.Rdata")
-  data = cbind(targets, docs)
+  #load("data/sentence-features.RData")
+  load("data/power-features.RData")
+  #data = cbind(targets, docs)
+  data = cbind(targets, docs, power_features)
+  #data = cbind(targets, data.frame(sentence_features))
   rm(docs)
   gc()
 }
@@ -65,10 +70,10 @@ if (speed == "instant") {
   
   ###
   # GBM parameters
-  gbm_ntrees = c(1, 2)
+  gbm_ntrees = c(2, 3)
   gbm_depth = c(1, 2)
   #gbm_shrinkage = c(0.1, 0.001)
-  gbm_shrinkage = c(0.2)
+  gbm_shrinkage = c(0.3)
   #gbm_minobspernode = c(5, 10)
   gbm_minobspernode = c(10)
   
@@ -87,7 +92,7 @@ if (speed == "instant") {
   # GBM parameters
   gbm_ntrees = c(10, 50)
   gbm_depth = c(1, 2)
-  gbm_shrinkage = c(0.2, 0.1)
+  gbm_shrinkage = c(0.5, 0.2)
   gbm_minobspernode = c(10)
 } else if (speed == "medium") {
   # This configuration takes about 30 minutes.
@@ -106,7 +111,7 @@ if (speed == "instant") {
   # GBM parameters
   gbm_ntrees = c(50, 100)
   gbm_depth = c(1, 2)
-  gbm_shrinkage = c(0.2, 0.1, 0.01)
+  gbm_shrinkage = c(0.4, 0.2)
   gbm_minobspernode = c(10)
 } else if (speed == "slow") {
   # This configuration should take about 6 hours per model.
@@ -123,7 +128,7 @@ if (speed == "instant") {
   # GBM parameters
   gbm_ntrees = c(100, 500, 1000)
   gbm_depth = c(1, 2)
-  gbm_shrinkage = c(0.2, 0.1, 0.01)
+  gbm_shrinkage = c(0.3, 0.2, 0.1)
   gbm_minobspernode = c(10)
 } else if (speed == "very slow") {
   # This configuration should take about 16 hours.
@@ -137,10 +142,11 @@ if (speed == "instant") {
   svm_cost_seq = c(1, 5, 10)
   
   # GBM parameters
-  gbm_ntrees = c(500, 1000)
-  gbm_depth = c(1, 2, 4)
-  gbm_shrinkage = c(0.1, 0.01, 0.005)
+  gbm_ntrees = c(1000, 2000)
+  gbm_depth = c(2, 4)
+  gbm_shrinkage = c(0.3, 0.2, 0.1)
   gbm_minobspernode = c(10, 50)
+  #gbm_minobspernode = c(10)
 } else {
   # Unclear how long this would take to complete, but we would want to use Amazon EC2 to run (or Savio).
   
@@ -290,6 +296,9 @@ params
 #model = gbm(data[idx, -1], data[idx, 1], n.trees = params$ntrees, interaction.depth = params$depth, n.minobsinnode = params$minobspernode, shrinkage = params$shrinkage)
 y_int = as.numeric(data[idx, 1]) - 1
 model = xgboost(data=data.matrix(data[idx, -1]), label=y_int, objective="multi:softmax", nround = params$ntrees, max_depth = params$depth, minchildweight = params$minobspernode, eta = params$shrinkage, num_class=length(target_classes), verbose=0)
+
+# Review feature importance - top 50 most important features.
+xgb.importance(colnames(data), model=model)[1:50, ]
 
 # Predict separately on holdout sample if using a subset for training and report holdout sample error.
 
