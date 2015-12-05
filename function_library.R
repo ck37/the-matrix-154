@@ -189,7 +189,7 @@ power_features_sentence = function(doc) {
 power_features_dtm = function(dtm) {
   
   new = matrix(NA,nrow=nrow(dtm),ncol=6)
-  colnames(new) = c("words_count","chars_count","words_avg_length","words_distinct","sd_words")
+  colnames(new) = c("words_count","chars_count","words_avg_length","words_distinct","sd_words", "word_diversity")
   words_chars = nchar(colnames(dtm))
   
   for(i in 1:nrow(dtm)){
