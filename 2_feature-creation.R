@@ -41,7 +41,10 @@ if (exists("conf")) {
 }
 getDoParWorkers()
 
-result = clean_imported_documents(docs, stopwords)
+# Takes about 10 minutes.
+system.time({
+  result = clean_imported_documents(docs, stopwords)
+})
 
 docs = result$docs
 targets = result$targets
