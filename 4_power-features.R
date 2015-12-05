@@ -77,7 +77,10 @@ power_features = cbind(sentence_features, word_features, bigram_features)
 
 save(power_features, file="data/power-features.RData")
 
-rm(docs, imported_docs, combined_docs)
+combined_features = cbind(docs, power_features)
+save(combined_features, file="data/combined-features.RData")
+
+rm(docs, imported_docs, combined_docs, combined_features)
 
 #merge(d, e, by=0, all=TRUE) 
 
