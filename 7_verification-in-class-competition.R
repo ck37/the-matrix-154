@@ -15,10 +15,16 @@ library(xgboost)
 # Load our main functions.
 source("function_library.R")
 
+verification_dir = "inbound/In-Class Competition/inClassCompetition"
+verification_labels = ""
+
+#verification_dir = "inbound/Practice"
+#verification_labels = "inbound/Practice_label.csv"
+
 # Load RF model.
 #load("data/models-rf-2015-12-01-slow.RData")
 #load("data/models-rf-2015-12-02-very-slow.RData")
-load("data/models-rf-feature-selection-top2k.RData")
+load("data/models-rf-feature-selection-top2k-v2.RData")
 
 # Load SVM model.
 #load("data/models-svm-fast.RData")
@@ -27,7 +33,7 @@ load("data/models-rf-feature-selection-top2k.RData")
 #load("data/models-gbm-2015-12-03-slow-v1.RData")
 
 # Define the models we want to evaluate.
-models = list(rf = list(model=rf, export_name="rf-export.csv")
+models = list(rf = list(model=rf, export_name="rf_pred.csv")
               #svm = list(model=svm, export_name="svm-export.csv",
               #gbm = list(model=gbm, export_name="gbm-export.csv")
 )
@@ -36,11 +42,8 @@ models = list(rf = list(model=rf, export_name="rf-export.csv")
 #models$svm = NULL
 #models$rf = NULL
 
-verification_dir = "inbound/Practice"
-verification_labels = "inbound/Practice_label.csv"
 
-#verification_dir = "inbound/Validation"
-#verification_labels = ""
+
 
 # Load the word feature matrix from step 3.
 #load("data/filtered-docs.Rdata")
@@ -69,6 +72,15 @@ features_to_copy = current_features[current_features %in% colnames(training_docs
 for (feature in features_to_copy) {
   new_docs[, feature] = docs[, feature]
 }
+
+# Restrict to features used in the model.
+feature_matrix = new_docs[, features]
+# Confirm that we have the correct number of columns.
+stopifnot(ncol(feature_matrix) == 2000)
+
+save(feature_matrix, file="exports/feature-matrix.RData")
+#write.table(feature_matrix, file=paste0("exports/feature-matrix.csv"), row.names=F, quote=F, col.names=T, sep=",")
+write.csv(feature_matrix, file="exports/feature-matrix.csv", row.names=F, quote=F, col.names=T, sep=",")
 
 # Confirm that all training doc features exist in the new dataframe.
 # If this stops with an error then we need to fix the script.
@@ -106,7 +118,7 @@ for (model_name in names(models)) {
   }
 }
 
-save(models, file="data/model-verification.RData")
+#save(models, file="data/model-verification.RData")
 
 #########################################
 # Cleanup

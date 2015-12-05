@@ -47,30 +47,36 @@ if (exists("conf")) {
 getDoParWorkers()
 
 # Use foreach here so that it can be run on multiple cores.
-# This takes about 53 minutes to execute without multicore processing.
+# This takes about 58 minutes to execute without multicore processing.
 # TODO: get multicore processing to work.
-system.time({
-  #feature_list = foreach(type = names(docs)) %dopar% {
-  feature_list = foreach(doc = docs) %do% {
+#system.time({
+  #feature_list = foreach(worker = 1:getDoParWorkers(), .combine=rbind) %do% {
+  sentence_features = foreach(worker = 1:length(names(docs)), .combine="rbind") %do% {
+    #cat("Worker:", worker, "\n")
+  #feature_list = foreach(doc = docs) %do% {
     #cat("Processing", type, "\n")
-    cat("Processing doc type\n")
+    #cat("Processing doc type\n")
     #power_features[[type]] = power_features_sentence(docs[[type]])
-    #power_features_sentence(docs[[type]])
-    power_features_sentence(doc)
+    result = power_features_sentence(docs[[worker]])
+    #power_features_sentence(doc)
+    result
   }
-})
+#})
+
+# Confirm that we created the sentence features successfully.
+stopifnot(class(sentence_features) != "NULL")
 
 # Re-save the outcome names.
-names(feature_list) = names(docs)
+#names(feature_list) = names(docs)
 
 # Double-check dimensions of the result.
-sapply(feature_list, FUN=dim)
+#sapply(feature_list, FUN=dim)
 
 # Confirm that it corresponds with dimensions of the input doc list.
-sapply(docs, FUN=length)
+#sapply(docs, FUN=length)
 
 # Convert list to a matrix that we can cbind to the word feature matrix.
-sentence_features = do.call(rbind, feature_list)
+#sentence_features = do.call(rbind, feature_list)
 dim(sentence_features)
 # TODO: confirm that we get the results in the exactly correct order.
 

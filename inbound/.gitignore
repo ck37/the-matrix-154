@@ -1,7 +1,9 @@
 # Ignore the training directory due to the large size.
 Training 
 Practice
+Validation
 *.csv
+*.zip
 
 # Except this file and the readme.
 !.gitignore
