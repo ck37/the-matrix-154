@@ -259,7 +259,10 @@ features = rownames(rf_varimp[order(rf_varimp[, "MeanDecreaseAccuracy"], decreas
 # TODO: use foreach to train on multiple cores and combine the trees later.
 # NOTE: err.rate may be null in that case though.
 total_trees = 500
-trees_per_worker = ceiling(total_trees / trees_per_worker)
+# Set only to 9 to save on memory requirements, esp. when ntrees = 3,000.
+# CK 12/4: this part was wrong when we submitted our tree :/
+total_workers = 9
+trees_per_worker = ceiling(total_trees / total_workers)
 rf = foreach(worker = 1:total_workers, .combine = randomForest::combine) %dopar% {
   #forest = randomForest(data[-idx, -1], data[-idx, 1], mtry = round(sqrt(ncol(data))), ntree = trees_per_worker, importance=T)
   #forest = randomForest(train_set[, features], train_set[, 1], mtry = params$mtry, ntree = trees_per_worker)
