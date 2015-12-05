@@ -43,8 +43,8 @@ verification_labels = "inbound/Practice_label.csv"
 #verification_labels = ""
 
 # Load the word feature matrix from step 3.
-#load("data/filtered-docs.Rdata")
-load("data/filtered-docs-low50-high80pct.Rdata")
+load("data/filtered-docs.Rdata")
+#load("data/filtered-docs-low50-high80pct.Rdata")
 #training_docs = docs
 
 load("data/power-features.RData")
