@@ -228,11 +228,20 @@ BigramTokenizer = function(x){
 }
 options(mc.cores=1)
 
+gutenberg = c('project','gutenberg','ebook','anyone anywhere','no cost','re-use',
+              'license','online','wwwgutenbergorg','wwwgutenbergnet','language english','ascii',
+              'httpwwwpgdpnet','first edition','second edition','title',
+              'author','release','chapter','posting','editor','translator','encoding','updated',
+              'anyone anywhere', 'at no cost and with almost', 'restrictions whatsoever','you may copy it',
+              'give it away', 'reuse it', 'under the terms', 'license included',
+              'distributed','proofread','proofreading team','character set','encoding','usascii')
+
 power_features_bigrams = function(book, stopwords = c()){
   book = tm_map(book, content_transformer(tolower))
   book = tm_map(book, removePunctuation)
+  book = tm_map(book, removeWords, gutenberg)  
   book = tm_map(book, removeNumbers)
-  book = tm_map(book, removeWords, c('project','gutenberg','ebook','title','author','release','chapter','posting','editor','translator','encoding','ascii','updated'))
+  
   if (length(stopwords)>0){
     book  = tm_map(book, removeWords, stopwords)
   }
@@ -240,11 +249,9 @@ power_features_bigrams = function(book, stopwords = c()){
   dtm = DocumentTermMatrix(book,
                            control = list(tokenize = BigramTokenizer, stopwords=T,stemming=T))
   dtm = as.data.frame(as.matrix(dtm))
-  
   bigrams_usage = apply(dtm, MARGIN=2, FUN=function(x){ sum(!is.na(x) & x > 0) })
-  # exclude bigrams that are included in every file
   filtered = bigrams_usage[which(bigrams_usage!=nrow(dtm))]
-  sorted = sort(bigrams_usage,decreasing=T)[1:2950]
+  sorted = sort(filtered,decreasing=T)[1:2950]
   bigrams_freq = names(sorted)
   dtm = dtm[,bigrams_freq]
   return(dtm)
