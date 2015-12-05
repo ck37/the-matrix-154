@@ -52,7 +52,7 @@ stopifnot(class(sentence_features) != "NULL")
 dim(sentence_features)
 # TODO: confirm that we get the results in the exactly correct order.
 
-# Save this for bigram features.
+# Save this for ngram features.
 imported_docs = docs
 
 load("data/cleaned-docs.Rdata")
@@ -69,10 +69,12 @@ class(combined_docs)
 stopwords = load_stopwords()
 
 system.time({
-  bigram_features = power_features_bigrams(combined_docs, stopwords)
+  bigram_features = power_features_ngrams(combined_docs, stopwords, ngrams = 2)
 })
 
-# TODO: trigrams!
+system.time({
+  trigram_features = power_features_ngrams(combined_docs, stopwords, ngrams = 3)
+})
 
 # Combine the sentence and word power features.
 # TODO: need to make sure that we are combining in the correct order.

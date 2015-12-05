@@ -139,12 +139,12 @@ clean_imported_documents = function(docs, stopwords = c()) {
 ########################## power features sentences:  ##########################
 
 ### external function(1): convert_text_to_sentences
-convert_text_to_sentences <- function(text, lang = "en") {
-  sentence_token_annotator <- Maxent_Sent_Token_Annotator(language = lang)
+convert_text_to_sentences = function(text, lang = "en") {
+  sentence_token_annotator = Maxent_Sent_Token_Annotator(language = lang)
   text <- as.String(text)
   # Need to specify NLP package, because ggplot2 also has an annotate function.
-  sentence.boundaries <- NLP::annotate(text, sentence_token_annotator)
-  sentences <- text[sentence.boundaries]
+  sentence.boundaries = NLP::annotate(text, sentence_token_annotator)
+  sentences = text[sentence.boundaries]
   return(sentences)
 }
 
@@ -158,7 +158,7 @@ remove_punc = function(x) {
 ### output: 4 columns of power features with rownames=filename
 power_features_sentence = function(doc) {
   n = length(doc)
-  power = matrix(NA, nrow=n, ncol=4, dimnames=list(seq(1, n)))
+  power = matrix(NA, nrow = n, ncol=4, dimnames = list(seq(1, n)))
   
   # Run this processing outside of the loop to make it faster.
   books = tm_map(doc, content_transformer(tolower))
@@ -223,7 +223,8 @@ power_features_dtm = function(dtm) {
     new[i,4] = length(which(as.numeric(dtm[i,])!=0))
     
     ### power5: standard deviation of word length
-    sqrdmean = sum(as.matrix(words_chars^2)*as.matrix(as.numeric(dtm[i,])))/max(new[i,1], 1)
+    # CK: why not just use the sd() function here?
+    sqrdmean = sum(as.matrix(words_chars^2) * as.matrix(as.numeric(dtm[i,])))/max(new[i,1], 1)
     mean = sum(words_chars*as.matrix(as.numeric(dtm[i,])))/max(new[i,1], 1)
     new[i,5] = sqrdmean-(mean^2)
     
@@ -239,10 +240,23 @@ power_features_dtm = function(dtm) {
 ### input: tm data
 ### output: power feature columns
 library(NLP)
-BigramTokenizer = function(x){
-  # Specify NLP package because qdap also provides the ngrams function.
-  unlist(lapply(NLP::ngrams(words(x), 2), paste, collapse = " "), use.names = FALSE)
+
+BigramTokenizer = function(x, ngrams = 2) {
+  NgramTokenizer(x, ngrams)
 }
+
+# Separate function because it's unclear how to change a parameter in the DocumentTermMatrix call.
+TrigramTokenizer = function(x, ngrams = 3) {
+  NgramTokenizer(x, ngrams)
+}
+
+
+# Change ngrams to 3 when calling to get trigrams.
+NgramTokenizer = function(x, ngrams = 2) {
+  # Specify NLP package because qdap also provides the ngrams function.
+  unlist(lapply(NLP::ngrams(words(x), ngrams), paste, collapse = " "), use.names = FALSE)
+}
+
 # Specify core to prevent a bug when multiple cores are used.
 options(mc.cores=1)
 
@@ -254,7 +268,7 @@ gutenberg = c('project','gutenberg','ebook','anyone anywhere','no cost','re-use'
               'give it away', 'reuse it', 'under the terms', 'license included',
               'distributed','proofread','proofreading team','character set','encoding','usascii')
 
-power_features_bigrams = function(book, stopwords = c()) {
+power_features_ngrams = function(book, stopwords = c(), ngrams = 2, min_sparsity = 0.99) {
   book = tm_map(book, content_transformer(tolower))
   book = tm_map(book, removePunctuation)
   book = tm_map(book, removeWords, gutenberg)  
@@ -265,24 +279,32 @@ power_features_bigrams = function(book, stopwords = c()) {
   }
   book = tm_map(book, stripWhitespace)
   
-  # Generate all bigrams as features.
-  dtm_bigrams = DocumentTermMatrix(book,
-                           control = list(tokenize = BigramTokenizer, stopwords=T, stemming=T))
+  # Generate all ngrams as features.
+  
+  # Choose which function to pass because it's unclear how we would change an argument.
+  if (ngrams == 3) {
+    f = TrigramTokenizer
+  } else {
+    f = BigramTokenizer
+  }
+  
+  dtm_ngrams = DocumentTermMatrix(book,
+                           control = list(tokenize = f, stopwords=T, stemming=T))
   
   # We have to removeSparseTerm before converting to a matrix because there are too many cells otherwise (> a billion).
   # This is a loose restriction - bigram must be used in at least 1% of documents.
-  dtm_nosparse = removeSparseTerms(dtm_bigrams, 0.99)
+  dtm_nosparse = removeSparseTerms(dtm_ngrams, min_sparsity)
   
   # Confirm that we did not remove every bigram.
   stopifnot(dtm_nosparse$ncol > 0)
   
   dtm = as.data.frame(as.matrix(dtm_nosparse))
   
-  # Identify how many docs use each bigram.
-  bigrams_usage = apply(dtm, MARGIN=2, FUN=function(x){ sum(!is.na(x) & x > 0) })
+  # Identify how many docs use each n-gram.
+  usage = apply(dtm, MARGIN=2, FUN=function(x){ sum(!is.na(x) & x > 0) })
   
   # Look at the top 50 bigrams
-  sort(bigrams_usage, decreasing=T)[1:50]
+  sort(usage, decreasing=T)[1:50]
   
   # Exclude bigrams that are used in every document.
   # filtered = bigrams_usage[bigrams_usage != nrow(dtm)]
