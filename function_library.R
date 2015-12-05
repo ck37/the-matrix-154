@@ -61,7 +61,7 @@ load_stopwords = function(input_file = "inbound/common-english-words.txt", outpu
 # Derive a dictionary of words/ bigrams and total number of their appearances through out the whole dataset.
 clean_documents = function(book, stopwords = c()) {
   book = tm_map(book, content_transformer(tolower))
-  book = tm_map(book, removeWords, c('project','gutenberg','ebook','title','author','release','chapter','posting','editor','translator','encoding','ascii','updated'))
+  book = tm_map(book, removeWords, gutenberg)
   if (length(stopwords) > 0) {
     book  = tm_map(book, removeWords, stopwords)
   }
