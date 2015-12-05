@@ -13,12 +13,17 @@ library(dplyr)
 library(doMC) # For multicore processing.
 
 # Load the docs file if it doesn't already exist.
-if (!exists("data", inherits=F)) {
+#if (!exists("data", inherits=F)) {
+if (T) {
   load("data/filtered-docs.Rdata")
-  data = cbind(targets, docs)
-  rm(docs)
+  load("data/power-features.RData")
+  data = cbind(targets, docs, power_features)
+  rm(docs, power_features)
   gc()
 }
+
+# Set to T to score main predictions across multiple cores. This removes the OOB error estimates though.
+rf_multicore = T
 
 
 ############################################
@@ -27,7 +32,7 @@ if (!exists("data", inherits=F)) {
 # Possible speed configurations.
 speed_types = c("instant", "fast", "medium", "slow", "very slow", "ideal")
 # Choose which option you want, based on speed vs. accuracy preference.
-speed = speed_types[5]
+speed = speed_types[4]
 cat("Speed configuration:", speed, "\n")
 
 set.seed(5)
@@ -59,7 +64,7 @@ if (speed == "instant") {
   mtry_seq = round(sqrt(ncol(data)) * c(0.5, 1, 2))
   rf_ntree = 60
   # We use 4 here because we have 4 cores right now.
-  cv_folds = 4
+  cv_folds = 10
   data_subset_ratio = 0.25
 } else if (speed == "slow") {
   # Laptop time: 6 hours. EC2 time: TBD.
@@ -139,7 +144,9 @@ for (j in 1:nrow(tune_grid)) {
   cat("Mtry:", params[1], "\n")
   # Loop through k-folds using multicore processing.
   #for (test_fold in 1:cv_folds) {
-  cv_data = foreach (test_fold = 1:cv_folds, .combine="rbind") %dopar% {
+  #cv_data = foreach (test_fold = 1:cv_folds, .combine="rbind") %dopar% {
+  gc()
+  cv_data = foreach (test_fold = 1:cv_folds, .combine="rbind") %do% {
     # idx for validation set
     validation_rows = seq((test_fold - 1) * samples_per_fold + 1, test_fold * samples_per_fold)
     val_idx = idx[validation_rows]
@@ -148,7 +155,16 @@ for (j in 1:nrow(tune_grid)) {
     # Training set - we need to index within idx due to possible subsampling.
     train_set = data[idx[-validation_rows],]
     
-    rf_cv = randomForest(train_set[, -1], train_set[, 1], mtry = params[1], ntree = rf_ntree)
+    #rf_cv = randomForest(train_set[, -1], train_set[, 1], mtry = params[1], ntree = rf_ntree)
+    total_trees = rf_ntree
+    total_workers = 9
+    trees_per_worker = ceiling(total_trees / total_workers)
+    rf_cv = foreach(worker = 1:total_workers, .combine = randomForest::combine) %dopar% {
+      #forest = randomForest(data[-idx, -1], data[-idx, 1], mtry = round(sqrt(ncol(data))), ntree = trees_per_worker, importance=T)
+      #forest = randomForest(train_set[, features], train_set[, 1], mtry = params$mtry, ntree = trees_per_worker)
+      forest = randomForest(train_set[, -1], train_set[, 1], mtry = params[1], ntree = trees_per_worker, importance=T)
+      forest
+    }
     
     cv_pred = predict(rf_cv, newdata = val_set[,-1])
     
@@ -196,15 +212,33 @@ best_params = grid_results[which.min(grid_results$mean_error_rate), ]
 best_pred = best_params[, 1]
 best_pred
 
+params = best_params
+
 
 
 # Refit the best parameters to the full (non-CV) dataset and save the result.
 # NOTE: if using a subset of the data, it will only retrain on that subset.
 # Save importance also.
 # library(caret)
-# TODO: use foreach to train on multiple cores and combine the trees later.
-# NOTE: err.rate may be null in that case though.
-rf = randomForest(data[idx, -1], data[idx, 1], mtry = best_pred, ntree = rf_ntree, importance=T)
+# NOTE: err.rate is null due to training on multiple cores.
+if (!rf_multicore) {
+  rf = randomForest(data[idx, -1], data[idx, 1], mtry = best_pred, ntree = rf_ntree, importance=T)
+} else {
+  total_trees = 500
+  total_workers = 9
+  trees_per_worker = ceiling(total_trees / total_workers)
+  rf = foreach(worker = 1:total_workers, .combine = randomForest::combine) %dopar% {
+    #forest = randomForest(data[-idx, -1], data[-idx, 1], mtry = round(sqrt(ncol(data))), ntree = trees_per_worker, importance=T)
+    #forest = randomForest(train_set[, features], train_set[, 1], mtry = params$mtry, ntree = trees_per_worker)
+    forest = randomForest(data[idx, -1], data[idx, 1], mtry = best_pred, ntree = trees_per_worker, importance=T)
+    forest
+  }
+  # Confirm that we generated at least the desired number of trees.
+  # This may be slightly more than the target count based on rounding.
+  cat("Combined tree count:", rf$ntree, "\n")
+  stopifnot(rf$ntree >= total_trees)
+}
+
 varimp = importance(rf)
 
 # TODO: attemp to use parRF here so that we can use multiple cores.
@@ -242,7 +276,7 @@ save(rf, cv_results, grid_results, test_results, file="data/models-rf.RData")
 
 #########################################
 # Review accuracy and generate ROC plots.
-
+if (!rf_multicore) {
 # Report overall accuracy and accuracy rates per class using OOB.
 # Final accuracy with the maximum number of trees:
 print(rf$err.rate[nrow(rf$err.rate), ])
@@ -263,6 +297,7 @@ p = ggplot(errors_combined, aes(x = ntrees, y = error_rate, colour=type))
 p + geom_line() + theme_bw()
 dev.copy(png, "visuals/6-rf-error-rate-per-class.png")
 dev.off()
+}
 
 # CK 11/30: Skip for now! Unclear how this would work in a multiclass setting and seems to be optional.
 
