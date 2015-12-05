@@ -19,11 +19,11 @@ doc_subdirectories = list(child="Child_0", history="History_1", religion="Religi
 
 docs = import_text_documents(directory, doc_subdirectories)
   
-# Clean up.
-rm(directory, doc_subdirectories)
-
 # Save our results, which is also a bit slow. Should be about 224MB in file size.
 save(docs, file="data/imported-text-docs.Rdata")
+
+# Clean up.
+rm(directory, doc_subdirectories, docs)
 
 #########################################
 # Cleanup
