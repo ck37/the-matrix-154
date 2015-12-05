@@ -224,8 +224,10 @@ power_features_dtm = function(dtm) {
 ### output: power feature columns
 library(NLP)
 BigramTokenizer = function(x){
-  unlist(lapply(ngrams(words(x), 2), paste, collapse = " "), use.names = FALSE)
+  # Specify NLP package because qdap also provides the ngrams function.
+  unlist(lapply(NLP::ngrams(words(x), 2), paste, collapse = " "), use.names = FALSE)
 }
+# Specify core to prevent a bug when multiple cores are used.
 options(mc.cores=1)
 
 gutenberg = c('project','gutenberg','ebook','anyone anywhere','no cost','re-use',
@@ -236,24 +238,41 @@ gutenberg = c('project','gutenberg','ebook','anyone anywhere','no cost','re-use'
               'give it away', 'reuse it', 'under the terms', 'license included',
               'distributed','proofread','proofreading team','character set','encoding','usascii')
 
-power_features_bigrams = function(book, stopwords = c()){
+power_features_bigrams = function(book, stopwords = c()) {
   book = tm_map(book, content_transformer(tolower))
   book = tm_map(book, removePunctuation)
   book = tm_map(book, removeWords, gutenberg)  
   book = tm_map(book, removeNumbers)
   
-  if (length(stopwords)>0){
+  if (length(stopwords) > 0) {
     book  = tm_map(book, removeWords, stopwords)
   }
   book = tm_map(book, stripWhitespace)
-  dtm = DocumentTermMatrix(book,
-                           control = list(tokenize = BigramTokenizer, stopwords=T,stemming=T))
-  dtm = as.data.frame(as.matrix(dtm))
+  
+  # Generate all bigrams as features.
+  dtm_bigrams = DocumentTermMatrix(book,
+                           control = list(tokenize = BigramTokenizer, stopwords=T, stemming=T))
+  
+  # We have to removeSparseTerm before converting to a matrix because there are too many cells otherwise (> a billion).
+  dtm_nosparse = removeSparseTerms(dtm_bigrams, 0.99)
+  
+  # Confirm that we did not remove every bigram.
+  stopifnot(dtm_nosparse$ncol > 0)
+  
+  dtm = as.data.frame(as.matrix(dtm_nosparse))
+  
+  # Identify how many docs use each bigram.
   bigrams_usage = apply(dtm, MARGIN=2, FUN=function(x){ sum(!is.na(x) & x > 0) })
-  filtered = bigrams_usage[which(bigrams_usage!=nrow(dtm))]
-  sorted = sort(filtered,decreasing=T)[1:2950]
+  
+  # Exclude bigrams that are used in every document.
+  # filtered = bigrams_usage[bigrams_usage != nrow(dtm)]
+  filtered = bigrams_usage
+  
+  # Choose the top X bigrams based on how many docs they are used in.
+  sorted = sort(filtered, decreasing=T)[1:2950]
   bigrams_freq = names(sorted)
-  dtm = dtm[,bigrams_freq]
+  dtm = dtm[, bigrams_freq]
+  
   return(dtm)
 }
 
