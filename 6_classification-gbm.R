@@ -129,8 +129,8 @@ if (speed == "instant") {
   
   # GBM parameters
   gbm_ntrees = c(500)
-  gbm_depth = c(2, 4)
-  gbm_shrinkage = c(0.5, 0.3, 0.1)
+  gbm_depth = c(2, 3)
+  gbm_shrinkage = c(0.6, 0.5, 0.4)
   gbm_minobspernode = c(10)
 } else if (speed == "very slow") {
   # This configuration should take about 16 hours.
