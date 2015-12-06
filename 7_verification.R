@@ -19,10 +19,10 @@ verification_labels = "inbound/Practice_label.csv"
 #verification_dir = "inbound/Validation"
 #verification_labels = ""
 
-setup_multicore()
-
 # Load our main functions.
 source("function_library.R")
+
+setup_multicore()
 
 # Load RF model.
 #load("data/models-rf-2015-12-01-slow.RData")
