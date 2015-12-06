@@ -58,10 +58,45 @@ load_stopwords = function(input_file = "inbound/common-english-words.txt", outpu
   return(stopwords)
 }
 
+removeGutenbergJunk = content_transformer(function(doc) {
+  gb_start = grep("*** start of this project gutenberg ebook", doc, fixed=T)
+  if (length(gb_start) > 0) {
+    starting_line = max(gb_start)
+    # Subset to only lines after the starting line.
+    doc = doc[(starting_line + 1):length(doc)]
+  }
+  # Similar starting line.
+  gb_start = grep("*end*the small print!", doc, fixed=T)
+  if (length(gb_start) > 0) {
+    starting_line = max(gb_start)
+    # Subset to only lines after the starting line.
+    doc = doc[(starting_line + 1):length(doc)]
+  }
+  # Similar starting line.
+  gb_start = grep("^errors is provided at the end of the book\\.", doc, fixed=F)
+  if (length(gb_start) > 0) {
+    starting_line = max(gb_start)
+    # Subset to only lines after the starting line.
+    doc = doc[(starting_line + 1):length(doc)]
+  }
+  
+  ending = grep("*** end of the project gutenberg ebook", doc, fixed=T)
+  if (length(ending) > 0) {
+    ending_line = min(ending)
+    # Subset to only lines before the ending line.
+    doc = doc[1:(ending_line - 1)]
+  }
+  doc
+})
+
 # Derive a dictionary of words/ bigrams and total number of their appearances through out the whole dataset.
 clean_documents = function(book, stopwords = c()) {
   book = tm_map(book, content_transformer(tolower))
-  book = tm_map(book, removeWords, gutenberg)
+  
+  # Remove the project gutenberg header and footer boilerplate text.
+  book = tm_map(book, removeGutenbergJunk)
+  
+  # book = tm_map(book, removeWords, gutenberg)
   if (length(stopwords) > 0) {
     book  = tm_map(book, removeWords, stopwords)
   }
@@ -162,6 +197,10 @@ power_features_sentence = function(doc) {
   
   # Run this processing outside of the loop to make it faster.
   books = tm_map(doc, content_transformer(tolower))
+ 
+  # Remove the project gutenberg header and footer boilerplate text.
+  book = tm_map(books, removeGutenbergJunk) 
+  
   books = tm_map(books, stripWhitespace)
   # Stemming takes a particularly long time.
   books = tm_map(books, stemDocument) 
@@ -270,8 +309,13 @@ gutenberg = c('project','gutenberg','ebook','anyone anywhere','no cost','re-use'
 
 power_features_ngrams = function(book, stopwords = c(), ngrams = 2, min_sparsity = 0.99) {
   book = tm_map(book, content_transformer(tolower))
+  
+  # Remove the project gutenberg header and footer boilerplate text.
+  book = tm_map(book, removeGutenbergJunk)
+  
   book = tm_map(book, removePunctuation)
-  book = tm_map(book, removeWords, gutenberg)  
+  # TODO: see if we need to re-enable these stopwords.
+  #book = tm_map(book, removeWords, gutenberg)  
   book = tm_map(book, removeNumbers)
   
   if (length(stopwords) > 0) {

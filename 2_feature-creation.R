@@ -11,10 +11,7 @@ script_timer = proc.time()
 library(tm)
 library(SnowballC) # for stemming
 
-# Load the docs file if it doesn't already exist.
-if (!exists("docs")) {
-  load("data/imported-text-docs.Rdata")
-}
+load("data/imported-text-docs.Rdata")
 
 source("function_library.R")
 

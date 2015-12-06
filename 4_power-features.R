@@ -75,6 +75,13 @@ system.time({
 
 dim(bigram_features)
 
+# Identify how many docs use each n-gram.
+bigram_usage = apply(bigram_features, MARGIN=2, FUN=function(x){ sum(!is.na(x) & x > 0) })
+
+# Look at the top 50 bigrams
+sort(bigram_usage, decreasing=T)[1:50]
+
+
 # This takes 29 minutes on my laptop, single core.
 # TODO: many of these trigrams are from gutenberg legal disclaimer text - should put as stopwords or otherwise remove full disclaimer.
 system.time({
@@ -82,6 +89,12 @@ system.time({
 })
 
 dim(trigram_features)
+
+# Identify how many docs use each n-gram.
+trigram_usage = apply(trigram_features, MARGIN=2, FUN=function(x){ sum(!is.na(x) & x > 0) })
+
+# Look at the top 50 bigrams
+sort(trigram_usage, decreasing=T)[1:50]
 
 # Combine the sentence and word power features.
 # TODO: need to make sure that we are combining in the correct order.
@@ -98,7 +111,8 @@ combined_features = cbind(docs, power_features)
 save(combined_features, file="data/combined-features.RData")
 
 # Cleanup objects
-rm(docs, imported_docs, combined_docs, combined_features, power_features, bigram_features, trigram_features, word_features)
+rm(docs, imported_docs, combined_docs, combined_features, power_features, bigram_features, trigram_features)
+rm(bigram_usage, trigram_usage, word_features)
 
 
 #########################################
