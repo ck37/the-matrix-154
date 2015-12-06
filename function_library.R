@@ -107,6 +107,24 @@ removeGutenbergJunk = content_transformer(function(doc) {
     # Subset to only lines after the starting line.
     doc = doc[(starting_line + 5):length(doc)]
   }
+  gb_start = grep("e-text prepared by", doc, fixed=T)
+  if (length(gb_start) > 0) {
+    starting_line = max(gb_start)
+    # Subset to only lines after the starting line.
+    doc = doc[(starting_line + 3):length(doc)]
+  }
+  gb_start = grep("produced by nick hodson", doc, fixed=T)
+  if (length(gb_start) > 0) {
+    starting_line = max(gb_start)
+    # Subset to only lines after the starting line.
+    doc = doc[(starting_line + 3):length(doc)]
+  }
+  gb_start = grep("transcriber's note", doc, fixed=T)
+  if (length(gb_start) > 0) {
+    starting_line = max(gb_start)
+    # Subset to only lines after the starting line.
+    doc = doc[(starting_line + 3):length(doc)]
+  }
   ending = grep("*** end of the project gutenberg ebook", doc, fixed=T)
   if (length(ending) > 0) {
     ending_line = min(ending)
@@ -123,7 +141,9 @@ clean_documents = function(book, stopwords = c()) {
   # Remove the project gutenberg header and footer boilerplate text.
   book = tm_map(book, removeGutenbergJunk)
   
+  # TODO: re-instate this one if need be.
   # book = tm_map(book, removeWords, gutenberg)
+  
   if (length(stopwords) > 0) {
     book  = tm_map(book, removeWords, stopwords)
   }
@@ -351,8 +371,10 @@ power_features_ngrams = function(book, stopwords = c(), ngrams = 2, min_sparsity
   book = tm_map(book, removeGutenbergJunk)
   
   book = tm_map(book, removePunctuation)
-  # TODO: see if we need to re-enable these stopwords.
-  #book = tm_map(book, removeWords, gutenberg)  
+  
+  # TODO: ideally we could remove these stopwords by better processing larger phrases.
+  book = tm_map(book, removeWords, gutenberg)  
+  
   book = tm_map(book, removeNumbers)
   
   if (length(stopwords) > 0) {
