@@ -75,25 +75,37 @@ removeGutenbergJunk = content_transformer(function(doc) {
   if (length(gb_start) > 0) {
     starting_line = max(gb_start)
     # Subset to only lines after the starting line.
-    doc = doc[(starting_line + 1):length(doc)]
+    doc = doc[(starting_line + 3):length(doc)]
   }
   gb_start = grep("internet archive/american libraries. see", doc, fixed=T)
   if (length(gb_start) > 0) {
     starting_line = max(gb_start)
     # Subset to only lines after the starting line.
-    doc = doc[(starting_line + 1):length(doc)]
+    doc = doc[(starting_line + 3):length(doc)]
   }
   gb_start = grep("proofreading team at http://www.pgdp.net", doc, fixed=T)
   if (length(gb_start) > 0) {
     starting_line = max(gb_start)
     # Subset to only lines after the starting line.
-    doc = doc[(starting_line + 1):length(doc)]
+    doc = doc[(starting_line + 3):length(doc)]
   }
   gb_start = grep("this ebook was produced by", doc, fixed=T)
   if (length(gb_start) > 0) {
     starting_line = max(gb_start)
     # Subset to only lines after the starting line.
     doc = doc[(starting_line + 3):length(doc)]
+  }
+  gb_start = grep("online distributed proofreading", doc, fixed=T)
+  if (length(gb_start) > 0) {
+    starting_line = max(gb_start)
+    # Subset to only lines after the starting line.
+    doc = doc[(starting_line + 3):length(doc)]
+  }
+  gb_start = grep("which includes the original illustrations", doc, fixed=T)
+  if (length(gb_start) > 0) {
+    starting_line = max(gb_start)
+    # Subset to only lines after the starting line.
+    doc = doc[(starting_line + 5):length(doc)]
   }
   ending = grep("*** end of the project gutenberg ebook", doc, fixed=T)
   if (length(ending) > 0) {
