@@ -70,6 +70,8 @@ trigram_usage = apply(trigram_features, MARGIN=2, FUN=function(x){ sum(!is.na(x)
 # Look at the top 50 bigrams
 sort(trigram_usage, decreasing=T)[1:50]
 
+save(bigram_features, trigram_features, file="data/ngram-power-features.Rdata")
+
 # Use foreach here so that it can be run on multiple cores.
 # This takes about 58 minutes to execute without multicore processing.
 # TODO: get multicore processing to work.
@@ -111,9 +113,12 @@ combined_features = cbind(docs, power_features)
 
 save(combined_features, file="data/combined-features.RData")
 
+# Save individual feature components for later analysis.
+save(bigram_features, trigram_features, word_features, sentence_features, file="data/feature-components.Rdata")
+
 # Cleanup objects
 rm(docs, combined_docs, combined_features, power_features, bigram_features, trigram_features)
-rm(bigram_usage, trigram_usage, word_features)
+rm(bigram_usage, trigram_usage, word_features, sentence_features)
 
 
 #########################################

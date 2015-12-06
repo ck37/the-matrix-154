@@ -25,6 +25,19 @@ import_text_documents = function(directory = "", doc_dirs = list(no_type="")) {
     }
   })
   
+  # These are not books at all, just Gutenberg junk text.
+  docs$child[["813.txt"]] = NULL
+  docs$history[["819953.txt"]] = NULL
+  docs$science[["829559.txt"]] = NULL
+  docs$science[["832040.txt"]] = NULL
+  docs$science[["832041.txt"]] = NULL
+  docs$science[["837448.txt"]] = NULL
+  docs$science[["840969.txt"]] = NULL
+  docs$science[["841622.txt"]] = NULL
+  docs$science[["842181.txt"]] = NULL
+  docs$science[["842182.txt"]] = NULL
+  docs$science[["949809.txt"]] = NULL
+  
   # Docs now contains the large corpus of text documents, coming in at 1.4 GB of memory.
   # It is a list with 4 elements, one for each type of text document.
   
@@ -125,9 +138,27 @@ removeGutenbergJunk = content_transformer(function(doc) {
     # Subset to only lines after the starting line.
     doc = doc[(starting_line + 3):length(doc)]
   }
-  ending = grep("*** end of the project gutenberg ebook", doc, fixed=T)
-  if (length(ending) > 0) {
-    ending_line = min(ending)
+  gp_ending = grep("end of the project gutenberg ebook", doc, fixed=T)
+  if (length(gp_ending) > 0) {
+    ending_line = min(gp_ending)
+    # Subset to only lines before the ending line.
+    doc = doc[1:(ending_line - 1)]
+  }
+  gp_ending = grep("end of this project gutenberg ebook", doc, fixed=T)
+  if (length(gp_ending) > 0) {
+    ending_line = min(gp_ending)
+    # Subset to only lines before the ending line.
+    doc = doc[1:(ending_line - 1)]
+  }
+  gp_ending = grep("information about the project gutenberg", doc, fixed=T)
+  if (length(gp_ending) > 0) {
+    ending_line = min(gp_ending)
+    # Subset to only lines before the ending line.
+    doc = doc[1:(ending_line - 1)]
+  }
+  gp_ending = grep("Project Gutenberg-tm is synonymous with the free distribution of", doc, fixed=T)
+  if (length(gp_ending) > 0) {
+    ending_line = min(gp_ending)
     # Subset to only lines before the ending line.
     doc = doc[1:(ending_line - 1)]
   }
@@ -268,7 +299,7 @@ power_features_sentence = function(doc) {
     
     # Average sentence length.
     # TODO: convert to directly calculate average strength length without regex.
-    power7 = sum(stri_count(sents2, regex="\\S+")) / length(sents2)
+    power7 = sum(stri_count(sents2, regex="\\S+")) / max(1, length(sents2))
     
     # Number of 4-digit numbers (years). 
     power8 = length(na.omit(str_extract(sents2, "\\d{4}")))
