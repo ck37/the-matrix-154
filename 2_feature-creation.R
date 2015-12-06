@@ -38,7 +38,7 @@ if (exists("conf")) {
 }
 getDoParWorkers()
 
-# Takes about 10 minutes.
+# Takes about 10 minutes; this does use multicore.
 system.time({
   result = clean_imported_documents(docs, stopwords)
 })
