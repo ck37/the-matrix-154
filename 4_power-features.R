@@ -49,6 +49,9 @@ system.time({
 
 dim(bigram_features)
 
+# Check for NAs.
+sum(apply(bigram_features, FUN=function(x){sum(is.na(x))}, MARGIN=2))
+
 # Identify how many docs use each n-gram.
 bigram_usage = apply(bigram_features, MARGIN=2, FUN=function(x){ sum(!is.na(x) & x > 0) })
 
@@ -63,6 +66,9 @@ system.time({
 })
 
 dim(trigram_features)
+
+# Check for NAs.
+sum(apply(trigram_features, FUN=function(x){sum(is.na(x))}, MARGIN=2))
 
 # Identify how many docs use each n-gram.
 trigram_usage = apply(trigram_features, MARGIN=2, FUN=function(x){ sum(!is.na(x) & x > 0) })
@@ -96,6 +102,17 @@ dim(sentence_features)
 # Review summmary stats on sentence features.
 apply(sentence_features, FUN=summary, MARGIN=2)
 
+# Check for NAs.
+apply(sentence_features, FUN=function(x){sum(is.na(x))}, MARGIN=2)
+
+# Fix any NAs in the average sentence length (currently there is 1).
+# TODO: remove the generation of NAs by fixing the sentence feature function.
+sentence_features[is.na(sentence_features[, "sentence_avg_length"]), "sentence_avg_length"] = 0
+
+
+# Again, check for NAs.
+apply(sentence_features, FUN=function(x){sum(is.na(x))}, MARGIN=2)
+
 # Save these features since they take a long time to calculate and R could crash.
 save(sentence_features, file="data/sentence-power-features.Rdata")
 
@@ -110,6 +127,9 @@ system.time({
 # Review summmary stats on word features.
 apply(word_features, FUN=summary, MARGIN=2)
 
+# Check for NAs.
+apply(word_features, FUN=function(x){sum(is.na(x))}, MARGIN=2)
+
 # Save these features since they take a long time to calculate and R could crash.
 save(word_features, file="data/word-power-features.Rdata")
 
@@ -121,9 +141,12 @@ save(sentence_features, word_features, bigram_features, trigram_features, file="
 # Otherwise we need to merge on the book name/id
 power_features = cbind(sentence_features, word_features, bigram_features, trigram_features)
 
+# Check for NAs.
+
 dim(power_features)
 
 save(power_features, file="data/power-features.RData")
+
 
 # Now load the filtered word features to create the combined feature matrix.
 load("data/filtered-docs.Rdata")
