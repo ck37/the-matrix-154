@@ -39,6 +39,7 @@ combined_docs = do.call(c, docs)
 length(combined_docs)
 class(combined_docs)
 
+
 stopwords = load_stopwords()
 
 # This takes 29 minutes on my laptop, single core.
