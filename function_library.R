@@ -107,9 +107,45 @@ removeGutenbergJunk = content_transformer(function(doc) {
     # Subset to only lines after the starting line.
     doc = doc[(starting_line + 5):length(doc)]
   }
-  ending = grep("*** end of the project gutenberg ebook", doc, fixed=T)
-  if (length(ending) > 0) {
-    ending_line = min(ending)
+  gb_start = grep("e-text prepared by", doc, fixed=T)
+  if (length(gb_start) > 0) {
+    starting_line = max(gb_start)
+    # Subset to only lines after the starting line.
+    doc = doc[(starting_line + 3):length(doc)]
+  }
+  gb_start = grep("produced by nick hodson", doc, fixed=T)
+  if (length(gb_start) > 0) {
+    starting_line = max(gb_start)
+    # Subset to only lines after the starting line.
+    doc = doc[(starting_line + 3):length(doc)]
+  }
+  gb_start = grep("transcriber's note", doc, fixed=T)
+  if (length(gb_start) > 0) {
+    starting_line = max(gb_start)
+    # Subset to only lines after the starting line.
+    doc = doc[(starting_line + 3):length(doc)]
+  }
+  gp_ending = grep("end of the project gutenberg ebook", doc, fixed=T)
+  if (length(gp_ending) > 0) {
+    ending_line = min(gp_ending)
+    # Subset to only lines before the ending line.
+    doc = doc[1:(ending_line - 1)]
+  }
+  gp_ending = grep("end of this project gutenberg ebook", doc, fixed=T)
+  if (length(gp_ending) > 0) {
+    ending_line = min(gp_ending)
+    # Subset to only lines before the ending line.
+    doc = doc[1:(ending_line - 1)]
+  }
+  gp_ending = grep("information about the project gutenberg", doc, fixed=T)
+  if (length(gp_ending) > 0) {
+    ending_line = min(gp_ending)
+    # Subset to only lines before the ending line.
+    doc = doc[1:(ending_line - 1)]
+  }
+  gp_ending = grep("Project Gutenberg-tm is synonymous with the free distribution of", doc, fixed=T)
+  if (length(gp_ending) > 0) {
+    ending_line = min(gp_ending)
     # Subset to only lines before the ending line.
     doc = doc[1:(ending_line - 1)]
   }
@@ -252,7 +288,7 @@ power_features_sentence = function(doc) {
     
     # Average sentence length.
     # TODO: convert to directly calculate average strength length without regex.
-    power7 = sum(stri_count(sents2, regex="\\S+")) / length(sents2)
+    power7 = sum(stri_count(sents2, regex="\\S+")) / max(1, length(sents2))
     
     # Number of 4-digit numbers (years). 
     power8 = length(na.omit(str_extract(sents2, "\\d{4}")))
