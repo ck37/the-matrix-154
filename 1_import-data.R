@@ -1,3 +1,4 @@
+sink() # Close any open log file first.
 # Log the script's output and messages to a text file.
 sink(paste0(gsub("\\.[^.]+$", "", basename(sys.frame(1)$ofile)), ".log"), append=F, split=T)
 cat("Executing:", sys.frame(1)$ofile, "\nDatetime:", date(), "\n")
@@ -34,8 +35,7 @@ gc()
 
 # Review script execution time.
 if (exists("script_timer")) {
-  cat("Script execution time:\n")
-  print(proc.time() - script_timer)
+  cat("Script execution time:", round((proc.time() - script_timer)[3] / 60, 0), "minutes.\n")
   rm(script_timer)
 }
 
