@@ -253,6 +253,9 @@ clean_imported_documents = function(docs, stopwords = c()) {
 
 ### external function(1): convert_text_to_sentences
 convert_text_to_sentences = function(text, lang = "en") {
+  if (text == "") {
+    return(c())
+  }
   sentence_token_annotator = Maxent_Sent_Token_Annotator(language = lang)
   text <- as.String(text)
   # Need to specify NLP package, because ggplot2 also has an annotate function.
