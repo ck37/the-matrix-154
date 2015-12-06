@@ -18,7 +18,7 @@ library(doMC) # For multicore processing.
 
 # Load the docs file if it doesn't already exist.
 #if (!exists("data", inherits=F)) {
-if (T) {
+if (F) {
   load("data/filtered-docs.Rdata")
   #load("data/filtered-docs-low50-high80pct.Rdata")
   #load("data/sentence-features.RData")
@@ -37,7 +37,7 @@ if (T) {
 # Possible speed configurations.
 speed_types = c("instant", "fast", "medium", "slow", "very slow", "ideal")
 # Choose which option you want, based on speed vs. accuracy preference.
-speed = speed_types[5]
+speed = speed_types[4]
 cat("Speed configuration:", speed, "\n")
 
 set.seed(5)
@@ -74,13 +74,13 @@ if (speed == "instant") {
   gbm_ntrees = c(2, 3)
   gbm_depth = c(1, 2)
   #gbm_shrinkage = c(0.1, 0.001)
-  gbm_shrinkage = c(0.7, 0.5)
+  gbm_shrinkage = c(0.9, 0.7)
   #gbm_minobspernode = c(5, 10)
   gbm_minobspernode = c(10)
   
 } else if (speed == "fast") {
-  # This configuration takes about two minutes.
-  cv_folds = 3
+  # This configuration takes about three minutes.
+  cv_folds = 5
   # Subset to a random 10% of the data.
   data_subset_ratio = 0.10
   
@@ -91,16 +91,17 @@ if (speed == "instant") {
   
   ###
   # GBM parameters
-  gbm_ntrees = c(10, 50)
+  gbm_ntrees = c(50)
   gbm_depth = c(1, 2)
-  gbm_shrinkage = c(0.5, 0.2)
+  gbm_shrinkage = c(0.8, 0.6, 0.4)
   gbm_minobspernode = c(10)
 } else if (speed == "medium") {
   # This configuration takes about 30 minutes.
  
   # This might be 4 if you have 4 cores, or the full 10 if on EC2.
   # But it can't be less than 2.
-  cv_folds = min(10, max(getDoParWorkers(), 2))
+  #cv_folds = min(10, max(getDoParWorkers(), 2))
+  cv_folds = 10
   data_subset_ratio = 0.25
   
   mtry_seq = round(sqrt(ncol(data)) * c(0.5, 1, 2))
@@ -110,9 +111,9 @@ if (speed == "instant") {
   svm_cost_seq = c(5, 10, 100)
   
   # GBM parameters
-  gbm_ntrees = c(50, 100)
-  gbm_depth = c(1, 2)
-  gbm_shrinkage = c(0.4, 0.2)
+  gbm_ntrees = c(100)
+  gbm_depth = c(2, 4)
+  gbm_shrinkage = c(0.8, 0.7, 0.6)
   gbm_minobspernode = c(10)
 } else if (speed == "slow") {
   # This configuration should take about 6 hours per model.
@@ -127,9 +128,9 @@ if (speed == "instant") {
   svm_cost_seq = c(5, 10, 100)
   
   # GBM parameters
-  gbm_ntrees = c(100, 500, 1000)
-  gbm_depth = c(1, 2)
-  gbm_shrinkage = c(0.3, 0.2, 0.1)
+  gbm_ntrees = c(500)
+  gbm_depth = c(2, 4)
+  gbm_shrinkage = c(0.5, 0.3, 0.1)
   gbm_minobspernode = c(10)
 } else if (speed == "very slow") {
   # This configuration should take about 16 hours.
@@ -251,7 +252,7 @@ system.time({
     }
     # Could re-order by the fold number, but doesn't actually matter.
     # cv_results = cv_results[order(cv_results[, 1]), ]
-    cat("Average error rate:", mean(cv_results[, "error_rate"]), "\n\n")
+    cat("Average error rate:", mean(cv_data[, "error_rate"]), "\n\n")
     
     # Save overall error rate and per-class error rates in a long data frame format.
     # Use this formula to save the k CV results in the correct rows.
