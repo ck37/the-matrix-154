@@ -4,7 +4,7 @@ library(tm)
 library(SnowballC) # for stemming
 
 # For step 1.
-import_text_documents = function(directory = "", doc_dirs = list(no_type="")) {
+import_text_documents = function(directory = "", doc_dirs = list(no_type=""), file_pattern = "\\.txt$") {
   
   file_names = list.files(path=directory, pattern="*\\.txt", full.names=F, recursive=T)
   cat(paste0("Found ", length(file_names), " text files in \"", directory, "\" to import.\n"))
@@ -20,7 +20,7 @@ import_text_documents = function(directory = "", doc_dirs = list(no_type="")) {
     docs = list()
     # Since disk is the main bottleneck here, multicore processing probably wouldn't help.
     for (type in names(doc_dirs)) {
-      docs[[type]] = Corpus(DirSource(paste0(directory, doc_dirs[[type]])))
+      docs[[type]] = Corpus(DirSource(paste0(directory, doc_dirs[[type]]), pattern = file_pattern))
       cat(paste0("Processed ", type, " in subdir \"", doc_dirs[[type]], "\" and found ", length(docs[[type]]), " documents.\n"))
     }
   })
