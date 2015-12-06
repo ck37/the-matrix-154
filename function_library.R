@@ -444,4 +444,15 @@ power_features_ngrams = function(book, stopwords = c(), ngrams = 2, min_sparsity
 
 ######################### Word+Power features matrix ########################
 
+# Setup multicore processing to speed up the model training.
+setup_multicore = function(conf = NULL) {
+  cat("Cores detected:", detectCores(), "\n")
+  if (exists("conf") && !is.null(conf)) {
+    registerDoMC(conf$num_cores)
+  } else {
+    # Uses half of the available cores by default, which is a good default setting.
+    registerDoMC()
+  }
+  cat("Workers enabled:", getDoParWorkers(), "\n")
+}
 
