@@ -1,25 +1,49 @@
 ---
 title: "Stat 154 Final Report"
-author: "The Matrix (team 5): Helen Hu, Chris Kennedy, Dan Kim, Stephanie Kim"
-output: pdf_document
+author: 'The Matrix (team 5): Zhenzheng Hu, Chris Kennedy, Dan (Dong Kyun) Kim, Stephanie
+  Kim, SaeJin Kim'
+output: html_document
 ---
 
-## Description
+## <span style="color:aquamarine">1. Description</span>
 
-To be added.
 
-## Feature Creation
+This project consists of an automated text categorization task (Sebastiani 2002). The data is classified into 4 genres; “Child”, “History”, “Religion”, and “Science”. Each category contains fractions of text files from that genre. “Child” category has 7,165 files, “History” category has 5,353 files, “Religion” category has 2,362 files, and “Science” category has 7,432 files. It is plausible for human to classify the text files from their contexts or specific words. The goal of this project is to train the machine so that it can classify the texts as how humans do. We use support vector machine and random forest methods, test on new text files, and measure the test error of each method.
 
-To be added.
+```{r, echo=FALSE}
+x = c("Child", "History", "Religion", "Science", "7,165 files", "5,353 files", "2,362 files", "7,432 files")
+m = matrix(x, nrow = 4, ncol = 2)
+m = data.frame(m)
 
-## Unsupervised Feature Filtering
+library(xtable)
+print(xtable(m))
+```
 
-## Classification of Word Feature Matrix
+## <span style="color:aquamarine">2. Feature Creation</span>
 
-## Classification of Power Word Feature Matrix
+In order to do text mining, we loaded the text data as a corpus, which is a collection of separate texts. The tm package provides several text transformation or word count commands. The tm_map() command is applied to the corpus to make transformations such as excluding too common or rare words, convert every word to lowercase, and remove punctuations or words. We stemmed the words to consolidate slight variations of word suffixes into a more concise feature set (Porter 1980). We also removed the lengthy header and footer text created by Project Gutenberg that would likely hurt our predictive accuracy.
 
-## Classification of Combined Feature Matrix
+The DocumentTermMatrix() command is then applied to make a dictionary of every unique word of the loaded text files and count the appearances of each word.  The outcome is in form of a data frame. Thus each row is the text file, each column is the unique word, and each cell is the word count in specific text file (22308 * 12262 data frame). This word feature matrix approach is commonly known as a bag of words model (Manning &  Schütze 1999, 7.2).
 
-## Final Model
+We then generated a target vector as a factor with values of “Child”, “History”, “Religion”, and “Science” which are the tags of the texts’ genre.
+
+
+## <span style="color:aquamarine">3. Unsupervised Feature Filtering</span>
+
+################ need to add the histogram here WITH Explanations
+
+
+
+## <span style="color:aquamarine">4. Classification of Word Feature Matrix</span>
+
+Before applying the minimum or maximum threshold to the feature matrix, we check if specific word is included in each text. In other words we count how many documents use that word. The maximum threshold we applied is if a word is in at least 70% of documents. Here we removed 11 words. The minimum threshold is if a word is in at least 200 documents. The number of word features we ended with is 7159 features. So our feature matrix is 22308 * 7159 data frame.
+
+## <span style="color:aquamarine">5. Classification of Power Word Feature Matrix</span>
+
+The power features are the variables that help distinguish files in different categories. These features consist of three kinds: Word-based power features, sentence-based power features, and N-grams.The following are the features from each file considered to help prediction. 
+
+## <span style="color:aquamarine">6. Classification of Combined Feature Matrix</span>
+
+## <span style="color:darkorange">7. Final Model</span>
 
 
