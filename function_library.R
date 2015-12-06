@@ -202,7 +202,8 @@ clean_imported_documents = function(docs, stopwords = c()) {
 
 ### external function(1): convert_text_to_sentences
 convert_text_to_sentences = function(text, lang = "en") {
-  if (text == "") {
+  # Check if the string is only whitespace
+  if (text %in% c("", " ") || str_count(text, "\\s") == str_length(text)) {
     return(c())
   }
   sentence_token_annotator = Maxent_Sent_Token_Annotator(language = lang)

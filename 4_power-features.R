@@ -70,6 +70,11 @@ trigram_usage = apply(trigram_features, MARGIN=2, FUN=function(x){ sum(!is.na(x)
 # Look at the top 50 bigrams
 sort(trigram_usage, decreasing=T)[1:50]
 
+# TODO: remove some of the Gutenberg-focused trigrams so that they aren't extra noise during training.
+
+# Save these features since they take a long time to calculate and R could crash.
+save(bigram_features, trigram_features, file="data/ngram-power-features.Rdata")
+
 # Use foreach here so that it can be run on multiple cores.
 # This takes about 58 minutes to execute without multicore processing.
 # TODO: get multicore processing to work.
@@ -88,19 +93,35 @@ stopifnot(class(sentence_features) != "NULL")
 dim(sentence_features)
 # TODO: confirm that we get the results in the exactly correct order.
 
+# Review summmary stats on sentence features.
+apply(sentence_features, FUN=summary, MARGIN=2)
+
+# Save these features since they take a long time to calculate and R could crash.
+save(sentence_features, file="data/sentence-power-features.Rdata")
+
 load("data/cleaned-docs.Rdata")
 
 # Run the dtm power features on the word feature dataframe.
-# This takes ~3 hours to finish on EC2.
+# This takes ~3.6 hours to finish on EC2.
 system.time({
   word_features = power_features_dtm(docs)
 })
 
+# Review summmary stats on word features.
+apply(word_features, FUN=summary, MARGIN=2)
+
+# Save these features since they take a long time to calculate and R could crash.
+save(word_features, file="data/word-power-features.Rdata")
+
+# Save component so that they can be analyzed more easily later.
+save(sentence_features, word_features, bigram_features, trigram_features, file="data/power-feature-components.Rdata")
 
 # Combine the sentence and word power features.
 # TODO: need to make sure that we are combining in the correct order.
 # Otherwise we need to merge on the book name/id
 power_features = cbind(sentence_features, word_features, bigram_features, trigram_features)
+
+dim(power_features)
 
 save(power_features, file="data/power-features.RData")
 
@@ -108,6 +129,8 @@ save(power_features, file="data/power-features.RData")
 load("data/filtered-docs.Rdata")
 
 combined_features = cbind(docs, power_features)
+
+dim(combined_features)
 
 save(combined_features, file="data/combined-features.RData")
 
