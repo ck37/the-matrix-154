@@ -34,38 +34,11 @@ if (exists("conf")) {
 }
 getDoParWorkers()
 
-# Use foreach here so that it can be run on multiple cores.
-# This takes about 58 minutes to execute without multicore processing.
-# TODO: get multicore processing to work.
-system.time({
-  #feature_list = foreach(worker = 1:getDoParWorkers(), .combine=rbind) %do% {
-  sentence_features = foreach(worker = 1:length(names(docs)), .combine = "rbind") %do% {
-    #power_features[[type]] = power_features_sentence(docs[[type]])
-    result = power_features_sentence(docs[[worker]])
-    result
-  }
-})
-
-# Confirm that we created the sentence features successfully.
-stopifnot(class(sentence_features) != "NULL")
-
-dim(sentence_features)
-# TODO: confirm that we get the results in the exactly correct order.
-
-# Save this for ngram features.
-imported_docs = docs
-
-load("data/cleaned-docs.Rdata")
-
-# Run the dtm power features on the word feature dataframe.
-# This takes ~3 hours to finish on EC2.
-system.time({
-  word_features = power_features_dtm(docs)
-})
-
-# Merge docs into a single object to compute bigrams on the full dataset.
-combined_docs = do.call(c, imported_docs)
+# Merge docs into a single object to compute ngrams on the full dataset.
+combined_docs = do.call(c, docs)
+length(combined_docs)
 class(combined_docs)
+
 stopwords = load_stopwords()
 
 # This takes 29 minutes on my laptop, single core.
@@ -96,6 +69,33 @@ trigram_usage = apply(trigram_features, MARGIN=2, FUN=function(x){ sum(!is.na(x)
 # Look at the top 50 bigrams
 sort(trigram_usage, decreasing=T)[1:50]
 
+# Use foreach here so that it can be run on multiple cores.
+# This takes about 58 minutes to execute without multicore processing.
+# TODO: get multicore processing to work.
+system.time({
+  #feature_list = foreach(worker = 1:getDoParWorkers(), .combine=rbind) %do% {
+  sentence_features = foreach(worker = 1:length(names(docs)), .combine = "rbind") %do% {
+    #power_features[[type]] = power_features_sentence(docs[[type]])
+    result = power_features_sentence(docs[[worker]])
+    result
+  }
+})
+
+# Confirm that we created the sentence features successfully.
+stopifnot(class(sentence_features) != "NULL")
+
+dim(sentence_features)
+# TODO: confirm that we get the results in the exactly correct order.
+
+load("data/cleaned-docs.Rdata")
+
+# Run the dtm power features on the word feature dataframe.
+# This takes ~3 hours to finish on EC2.
+system.time({
+  word_features = power_features_dtm(docs)
+})
+
+
 # Combine the sentence and word power features.
 # TODO: need to make sure that we are combining in the correct order.
 # Otherwise we need to merge on the book name/id
@@ -111,7 +111,7 @@ combined_features = cbind(docs, power_features)
 save(combined_features, file="data/combined-features.RData")
 
 # Cleanup objects
-rm(docs, imported_docs, combined_docs, combined_features, power_features, bigram_features, trigram_features)
+rm(docs, combined_docs, combined_features, power_features, bigram_features, trigram_features)
 rm(bigram_usage, trigram_usage, word_features)
 
 
