@@ -208,13 +208,13 @@ remove_punc = function(x) {
 ### output: 4 columns of power features with rownames=filename
 power_features_sentence = function(doc) {
   n = length(doc)
-  power = matrix(NA, nrow = n, ncol=4, dimnames = list(seq(1, n)))
+  power = matrix(NA, nrow = n, ncol = 6, dimnames = list(seq(1, n)))
   
   # Run this processing outside of the loop to make it faster.
   books = tm_map(doc, content_transformer(tolower))
  
   # Remove the project gutenberg header and footer boilerplate text.
-  book = tm_map(books, removeGutenbergJunk) 
+  books = tm_map(books, removeGutenbergJunk) 
   
   books = tm_map(books, stripWhitespace)
   # Stemming takes a particularly long time.
@@ -235,21 +235,31 @@ power_features_sentence = function(doc) {
     power6 = length(sents2)
     
     # Average sentence length.
+    # TODO: convert to directly calculate average strength length without regex.
     power7 = sum(stri_count(sents2, regex="\\S+")) / length(sents2)
     
     # Number of 4-digit numbers (years). 
     power8 = length(na.omit(str_extract(sents2, "\\d{4}")))
     
     # Number of digits.
+    # CK: actually, this is number of sentences that contain a digit.
     power9 = sum(grepl("[[:digit:]]", sents2))
+    
+    # Number of question marks.
+    power10 = sum(str_count(text, fixed("?")))
+    
+    #s Number of exclamation marks.
+    power11 = sum(str_count(text, fixed("!")))
     
     ### 
     
-    title = names(book)
-    power[i,] = as.matrix(cbind(power6, power7, power8, power9))
-    rownames(power)[i] = title
+    #title = names(book)
+    #power[i,] = as.matrix(cbind(power6, power7, power8, power9))
+    power[i, ] = c(power6, power7, power8, power9, power10, power11)
+    #rownames(power)[i] = title
   }
-  colnames(power) = c("sentence_count", "sentence_avg_length", "4digit_nums", "digit_count")
+  rownames(power) = names(books)
+  colnames(power) = c("sentence_count", "sentence_avg_length", "4digit_nums", "digit_count", "question_marks", "exclamation_points")
   return(power)
 }
 
