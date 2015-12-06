@@ -1,3 +1,4 @@
+sink() # Close any open log file first.
 # Log the script's output and messages to a text file.
 sink(paste0(gsub("\\.[^.]+$", "", basename(sys.frame(1)$ofile)), ".log"), append=F, split=T)
 cat("Executing:", sys.frame(1)$ofile, "\nDatetime:", date(), "\n")
@@ -129,8 +130,9 @@ if (speed == "instant") {
   
   # GBM parameters
   gbm_ntrees = c(500)
-  gbm_depth = c(2, 4)
-  gbm_shrinkage = c(0.5, 0.3, 0.1)
+  gbm_depth = c(2, 3)
+  # 0.5/0.4 are for depth=2, 0.2 is for depth=3
+  gbm_shrinkage = c(0.5, 0.4, 0.2)
   gbm_minobspernode = c(10)
 } else if (speed == "very slow") {
   # This configuration should take about 16 hours.
@@ -364,8 +366,7 @@ gc()
 
 # Review script execution time.
 if (exists("script_timer")) {
-  cat("Script execution time:\n")
-  print(proc.time() - script_timer)
+  cat("Script execution time:", round((proc.time() - script_timer)[3] / 60, 0), "minutes.\n")
   rm(script_timer)
 }
 
