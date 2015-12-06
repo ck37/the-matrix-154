@@ -72,8 +72,7 @@ gc()
 
 # Review script execution time.
 if (exists("script_timer")) {
-  cat("Script execution time:\n")
-  print(proc.time() - script_timer)
+  cat("Script execution time:", round((proc.time() - script_timer)[3] / 60, 0), "minutes.\n")
   rm(script_timer)
 }
 

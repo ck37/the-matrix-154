@@ -11,6 +11,15 @@ script_timer = proc.time()
 library(randomForest)
 library(e1071)
 library(xgboost)
+library(doMC)
+
+verification_dir = "inbound/Practice"
+verification_labels = "inbound/Practice_label.csv"
+
+#verification_dir = "inbound/Validation"
+#verification_labels = ""
+
+setup_multicore()
 
 # Load our main functions.
 source("function_library.R")
@@ -24,7 +33,8 @@ source("function_library.R")
 
 # Load GBM model
 #load("data/models-gbm-2015-12-03-slow-v1.RData")
-load("data/models-gbm-2015-12-05-slow-sentences.RData")
+#load("data/models-gbm-2015-12-05-slow-sentences.RData")
+load("data/models-gbm-2015-12-06-slow-v1.RData")
 
 # Define the models we want to evaluate.
 models = list(#rf = list(model=rf, export_name="rf-export.csv"),
@@ -36,11 +46,7 @@ models = list(#rf = list(model=rf, export_name="rf-export.csv"),
 models$svm = NULL
 models$rf = NULL
 
-verification_dir = "inbound/Practice"
-verification_labels = "inbound/Practice_label.csv"
 
-#verification_dir = "inbound/Validation"
-#verification_labels = ""
 
 # Load the word feature matrix from step 3.
 load("data/filtered-docs.Rdata")
@@ -60,14 +66,26 @@ docs = results$docs
 # This should be 1.
 length(imported_docs)
 
+# Merge docs into a single object to compute ngrams on the full dataset.
+combined_docs = do.call(c, imported_docs)
+length(combined_docs)
+class(combined_docs)
+
 # Add sentence features.
+sentence_features = power_features_sentence(combined_docs)
 sentence_features = power_features_sentence(imported_docs[[1]])
 
 # Add word features.
 word_features = power_features_dtm(docs)
 
+# Add bigrams
+bigram_features = power_features_ngrams(combined_docs, stopwords, ngrams = 2)
+
+# Add trigrams
+trigram_features = power_features_ngrams(combined_docs, stopwords, ngrams = 3)
+
 # Combine into a merged dataframe.
-docs = cbind(docs, sentence_features, word_features)
+docs = cbind(docs, sentence_features, word_features, bigram_features, trigram_features)
 
 # Re-sort documents by converting filename to an ID.
 docs$id = as.numeric(rownames(docs))
