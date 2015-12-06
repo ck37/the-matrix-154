@@ -65,21 +65,36 @@ removeGutenbergJunk = content_transformer(function(doc) {
     # Subset to only lines after the starting line.
     doc = doc[(starting_line + 1):length(doc)]
   }
-  # Similar starting line.
   gb_start = grep("*end*the small print!", doc, fixed=T)
   if (length(gb_start) > 0) {
     starting_line = max(gb_start)
     # Subset to only lines after the starting line.
     doc = doc[(starting_line + 1):length(doc)]
   }
-  # Similar starting line.
   gb_start = grep("^errors is provided at the end of the book\\.", doc, fixed=F)
   if (length(gb_start) > 0) {
     starting_line = max(gb_start)
     # Subset to only lines after the starting line.
     doc = doc[(starting_line + 1):length(doc)]
   }
-  
+  gb_start = grep("internet archive/american libraries. see", doc, fixed=T)
+  if (length(gb_start) > 0) {
+    starting_line = max(gb_start)
+    # Subset to only lines after the starting line.
+    doc = doc[(starting_line + 1):length(doc)]
+  }
+  gb_start = grep("proofreading team at http://www.pgdp.net", doc, fixed=T)
+  if (length(gb_start) > 0) {
+    starting_line = max(gb_start)
+    # Subset to only lines after the starting line.
+    doc = doc[(starting_line + 1):length(doc)]
+  }
+  gb_start = grep("this ebook was produced by", doc, fixed=T)
+  if (length(gb_start) > 0) {
+    starting_line = max(gb_start)
+    # Subset to only lines after the starting line.
+    doc = doc[(starting_line + 3):length(doc)]
+  }
   ending = grep("*** end of the project gutenberg ebook", doc, fixed=T)
   if (length(ending) > 0) {
     ending_line = min(ending)
