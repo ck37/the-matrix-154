@@ -31,9 +31,11 @@ kable(df, caption="Documents in each category")
 
 ## <span style="color:black">2. Feature Creation</span>
 
-In order to do text mining, we loaded the text data as a corpus, which is a collection of separate texts. The tm package provides several text transformation or word count commands. The tm_map() command is applied to the corpus to make transformations such as excluding too common or rare words, convert every word to lowercase, and remove punctuations or words. We stemmed the words to consolidate slight variations of word suffixes into a more concise feature set (Porter 1980). We also removed the lengthy header and footer text created by Project Gutenberg that would likely hurt our predictive accuracy.
+In order to do text mining, we loaded the text data as a corpus, which is a collection of separate texts. The tm package provides several text transformation or word count commands. The tm_map() command is applied to the corpus to make transformations such as excluding too common or rare words, convert every word to lowercase, and remove punctuations or words. We stemmed the words to consolidate slight variations of word suffixes into a more concise feature set (Porter 1980). Terms that occurred in fewer than 1% of documents were excluded at this stage.
 
-The DocumentTermMatrix() command is then applied to make a dictionary of every unique word of the loaded text files and count the appearances of each word.  The outcome is in form of a data frame. Thus each row is the text file, each column is the unique word, and each cell is the word count in specific text file. This data frame has a dimension of 22308 * 12262. This word feature matrix approach is commonly known as a bag of words model (Manning &  Schütze 1999, 7.2).
+We also removed the lengthy header and footer text created by Project Gutenberg that would likely hurt our predictive accuracy. A set of documents, roughly 600 or more, consisted entirely of Project Gutenberg legal or other non-literary text. We remove some of those documents although would have liked to spend more time removing the remainder (e.g. using outlier detection methods) so that their feature distributions would not influence the prediction algorithms.
+
+The DocumentTermMatrix() command is then applied to make a dictionary of every unique word of the loaded text files and count the appearances of each word.  The outcome is in the form of a data frame, where each row is a text document, each column is a unique word, and each cell is the count of that word in the text document. The resulting data frame has 22,305 rows and  12,196 columns. This word feature matrix approach is commonly known as a bag of words model (Manning &  Schütze 1999, 7.2).
 
 We then generated a target vector as a factor with values of “Child”, “History”, “Religion”, and “Science” which are the tags of the texts’ genre.
 
@@ -42,7 +44,9 @@ We then generated a target vector as a factor with values of “Child”, “His
 ```
 ## <span style="color:black">3. Unsupervised Feature Filtering</span>
 
-Before applying the minimum or maximum threshold to the feature matrix, we check if specific word is included in each text. In other words we count how many documents use that word. The maximum threshold we applied is if a word is in at least 70% of documents. Here we removed 11 words. The minimum threshold is if a word is in at least 200 documents. The number of word features we ended with is 7159 features. So our feature matrix is 22308 * 7159 data frame.
+In order to reduce the feature set size and limit overfitting, we tally how many documents use each word. We chose a minimum threshold of 50 documents; any word with less usage was removed from the feature matrix. We selected a relatively low minimum so that the machine learning algorithms could achieve maximum accuracy through a large feature set - aggressive pruning would limit our ability to detect patterns in word usage. Similarly, we chose not to limit on the maximum number of documents using a feature under the theory that words with high document coverage could still provide useful differentiation across categories. Our final word feature matrix contains 22,305 rows and 11,218 word-feature columns.
+
+[Plot of word frequency]
 
 ```{r, echo=F, message=F, warning=F}
 ```
