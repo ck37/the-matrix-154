@@ -122,7 +122,7 @@ Now we combine our word and power features and estimate the accuracy using cross
 
 ## 9. Final Model
 
-For our final model we used gradient boosted machines to maximize our prediction accuracy. 
+For our final model we used gradient boosted machines to maximize our prediction accuracy. We switched from the gbm package to the xgboost package because the latter supports multicore training for each model, which allowed us to leverage 18-core Amazon EC2 instances to speed up model training. With the gbm package were still able to use multicore processing across cross-validation folds, but that would limit us to 10 cores at a time. The xgboost package is often a top algorithm on Kaggle competitions (see e.g. http://blog.kaggle.com/2015/12/03/dato-winners-interview-1st-place-mad-professors/) so becoming familiar with the package was a helpful learning process in its own right.
 
 ```{r, echo=F, message=F, warning=F}
 
