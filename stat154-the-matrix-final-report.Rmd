@@ -3,7 +3,8 @@ title: STAT 154 Final Report
 author: |
     | The Matrix (Team5)
     | Stephanie Kim (25937115), Chris Kennedy (25947847), 
-    | Dongkyun Kim (22874163), Saejin Kim (00000000), Zhenzheng Hu (23715262)
+    | Dongkyun Kim (22874163), Saejin Kim (21086782),
+    | Zhenzheng Hu (23715262)
 date: "12/7/2015"
 output:
   pdf_document:
@@ -73,9 +74,11 @@ names(df3) = c("Power Feature", "Definition")
 kable(df3,caption="Sentence-based power features")
 ```
 
-(3) N-grams: The N-gram is a sequence of N words sliced from a longer string. The word features we described above are unigrams. It is known that the N-gram-based approach to text categorization is tolerant of textual errors, fast and robust. This approach works very well for language classification (William & John, 1994). In this project, for better prediction, other than unigrams we also included the 4,736 bigram and 497 trigram features. We were able to make a feature matrix of N-grams with the DocumentTermMatrix() command as we did for the word features but by adjusting the command with the N-gram-tokenizer. The trigram features were especially useful for identifying documents that only included Project Gutenberg meta text, because non-literary legal phrases tended to occur frequently in those documents.
+(3) N-grams: The N-gram is a sequence of N words sliced from a longer string. The word features we described above are unigrams. It is known that the N-gram-based approach to text categorization is tolerant of textual errors, fast and robust. This approach works very well for language classification (William & John, 1994). In this project, for better prediction, other than unigrams we also included the 4,736 bigram and 497 trigram features. We were able to make a feature matrix of N-grams with the DocumentTermMatrix() command as we did for the word features but by adjusting the command with the N-gram-tokenizer. The trigram features were especially useful for identifying documents that only included Project Gutenberg meta text, because non-literary legal phrases tended to occur frequently in those documents. The 10 most frequent bigrams were: "sam tim", "dont know", "once mor", "very much", "two thre", "much mor", "one day", "very wel", "first tim", "few minut". The 5 most frequent trigrams were: "made up mind", "held out hand", "make up mind", "over over again", and "days following each" - this ignores the clear Gutenberg trigams, although Gutenberg text may still pollute these trigrams.
 
 As a result, we have 5,245 power features in total. The power feature matrix has dimension 22,305 $\times$ 5,245.
+
+The power features were quite computationally intense to create, taking about 5 hours in total when using Amazon EC2 computers. Unfortunately we were not able to upgrade the algorithm to distribute over multiple cores, which limited our performance. The end result was that we could not experiment and iterate as much as we would have liked on the power features.
 
 ## 5. Word and Power Feature Combination
 
@@ -89,15 +92,25 @@ We use random forest and support vector machine algorithms on the word feature m
 
 The key hyperparameter to optimize in random forest is mtry, the number of predictors randomly selected at each split. A low mtry is useful when most of the features are related to the outcome variable, which allows each tree to be accurate but also have less correlation with other trees, thereby allowing the ensemble to have lowered variance and MSE. A higher mtry is needed when fewer features are related to the outcome. In that case each node will need to search a larger number of features to find ones that identify real relationships with the outcome. As a result each tree will tend to be more strongly correlated and the ensemble will not benefit as much from reduced variance. For this project we tested mtrys based on a multiplier of the square-root of the number of features, where that multiple was one of: {0.5, 1, 2, 4, 8}.
 
-[Add accuracy results]
+Based on cross-validation, we found that a multiplier of 2, consisting of 212 word features here, performed best. Our error rate was 89% overall, with per class accuracies of: 87% for children, 82% for history, 82% for religion, and 96% for science.
 
-The second hyperparameter for random forest is the number of trees used in the ensemble. This parameter is not as critical to tune because random forest does not overfit as the number of trees increases (Breiman 2001). However, performance does reach a maximum as the number of trees increases, after which there is no real benefit to adding trees and it is not worth the computational time to fit that many trees. We use out-of-bag performance to review any plateauing in performance as the number of trees increases.
+The second hyperparameter for random forest is the number of trees used in the ensemble. This parameter is not as critical to tune because random forest does not overfit as the number of trees increases (Breiman 2001, theorem 1.2). However, performance does reach a maximum as the number of trees increases, after which there is no real benefit to adding trees and it is not worth the computational time to fit that many trees. We use out-of-bag performance to review any plateauing in performance as the number of trees increases.
+
+Based on this analysis we found that 200 trees was sufficient to achive a near-maximum accuracy with random forest. However, given more time and computational resources we would have examined trees counts up to 500 or even 1000 in order to eek out a little more performance potentially.
+
+![Out-of-bag error rates for number of trees](visuals/6-rf-error-rate-overall-very-slow.png)
+
+![Out-of-bag error rates for number of trees, by class](visuals/6-rf-error-rate-per-class.png)
+
+Most important predictors for random forest included the (stemmed) words: "planet", "god", "boy", "king", "honour", "christ", "friend", "mother".
+
+$\pagebreak$
 
 ### Support Vector Machine Model 
 
 We chose a radial kernel for our SVM; future improvements might include comparing accuracy to a polynomial kernel. We tune the cost parameter, which modifies how many support vectors are incorporated into the model in order to balance bias and variance in model performance.
 
-[Add accuracy results]
+We found cost = 10 to be optimal from cross-validation, yielding an overall accuracy of 86%. Per-class accuracies were -- child: 85%, history: 78%, religion: 80%, science: 95%.
 
 ## 7. Classification of Power Feature Matrix
 
@@ -105,44 +118,85 @@ We compare those results to the accuracy we achieve only using the power feature
 
 ### Random Forest Model 
 
+We achieve an accuracy of 75% using only the power features. Per-class accuracies were -- child: 84%, history: 57%, religion: 55%, science: 84%%.
+
+The most important variables within the power feature matrix were:
+
+1. [Count of distinct words]
+2. [Number of characters]
+3. [Average words per sentence]
+4. [Count of words]
+5. [Word diversity]
+6. [Count of exclamation points]
+7. [Standard deviation of the number of words]
+8. [Average word length]
+9. [Count of numerical digits]
+10. "Thou art"
+11. [Number of sentences]
+12. "Jesus christ"
+13. [Count of 4-digit numbers]
+14. "Thou hast"
+15. "Solar system"
+16. "Christian church"
+17. "God god"
+18. "Thou shalt"
+19. "Little boy"
+20. [Count of question marks]
+
+This shows that the word, sentence, and document-based statistics were helpful, as were the bigrams. One trigram showed up in the top 50 features: "made up mind", suggesting that the trigams provided some performance boost, if small. Yet without the word features we see a clear drop in performance.
+
 ### Support Vector Machine Model 
 
-```{r, echo=F, message=F, warning=F}
-
-```
+Using only the power feature matrix we were able to achieve an accuracy of 74% using SVM. The optimal cost was estimated to be 10 again. Clearly SVM benefits from the word feature matrix in addition to the power features. Per-class accuracies are -- child: 83%, history: 62%, religion: 52%, science: 82%.
 
 ## 8. Classification of Combined Feature Matrix
 
-Now we combine our word and power features and estimate the accuracy using cross-validation.
+Now we combine our word and power features and estimate the accuracy using cross-validation. We find significant improvements over both the original word feature result and the power feature results. This shows the importance of the word features combined with feature engineering to add n-grams and other statistics.
 
 ### Random Forest Model 
 
+We achieve a final accuracy of 88% using both word and power features. Per-class accuracies are -- child: 85%, history: 78%, religion: 80%, science: 95%. We found mtry = 4 * sqrt(p) = 513 to be optimal.
+
 ### Support Vector Machine Model 
 
-
-```{r, echo=F, message=F, warning=F}
-
-```
+Our SVM final accuracy was surprisingly only 65% using both word and power features, based on an optimal cost parameter of 10. Per-class accuracies are -- child: 74%, history: 66%, religion: 23%, science: 68%. The religion category experienced particularly low performance in the combined feature matrix analysis. This may be due to some combination of overfitting to the wider feature set and/or needing more fine-grained tuning to identify the optimal cost parameter.
 
 ## 9. Final Model
 
 For our final model we used gradient boosted machines to maximize our prediction accuracy. We switched from the gbm package to the xgboost package because the latter supports multicore training for each model, which allowed us to leverage 18-core Amazon EC2 instances to speed up model training. With the gbm package were still able to use multicore processing across cross-validation folds, but that would limit us to 10 cores at a time. The xgboost package is often a top algorithm on Kaggle competitions (see e.g. http://blog.kaggle.com/2015/12/03/dato-winners-interview-1st-place-mad-professors/) so becoming familiar with the package was a helpful learning process in its own right.
 
-```{r, echo=F, message=F, warning=F}
+GBM is a slightly more complex model for hyperparameter tuning, having 4 main tuning parameters: the number of trees, the depth of each tree, shrinkage, and (optionally) minimum observations per split. Our tuning space spanned -- ntrees: {100, 500, 1000}, depth: {1, 2, 3}, shrinkage: {0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.01}, minimum observations: {10, 50}. Our tuned parameters were: ntrees = 1000, depth = 2, shrinkage = 0.2, minobspernode = 50. This yielded an accuracy of 97%, with per-class accuracies of -- child: 98%, history: 96%, religion: 93%, science: 99%.
 
-```
+The top 15 most important variabled identified by our final model were:
+
+1. "Glove"
+2. [Average word length]
+3. "Pamper"
+4. [Character count]
+5. "Bound"
+6. [Sentence count]
+7. "Fate"
+8. "Chose"
+9. "Shadow"
+10. [Number of distinct words]
+11. [Total number of words]
+12. "Fresh"
+13. "Mous"
+14. "Jone"
+15. "Spent"
 
 ## 10. Validation Set
 
-We submitted our model to the Kaggle competition leaderboard and achieved an overall accuracy of 89.0%. This was much lower than our cross-validation results suggested we would achieve, although consistent with applying the GBM model to the practice set. We believe that our verfication code contains an error, probably in generating or merging the feature matrix, which prevents the model from leveraging the calculated features as we would expect. Our accuracy was also likely limited by our inability to remove the documents that consisted entirely of Project Gutenberg meta-text, which we unfortunately ran out of time to fully remove from our training data.
+We submitted our model to the Kaggle competition leaderboard and achieved a disappointing overall accuracy of 89.0%. This was much lower than our cross-validation results suggested we would achieve, although consistent with applying the GBM model to the practice set. We believe that our verification code contains an error, probably in generating or merging the power feature matrix, which prevents the model from leveraging the calculated features as we would expect. Our accuracy was also likely limited by our inability to remove the documents that consisted entirely of Project Gutenberg meta-text, which we unfortunately ran out of time to fully remove from our training data.
 
-The importance of performance was a key learning item from this project. The dataset was quite large, requiring both a reasonably high amount of memory but more importantly requiring huge computational capacity in order to train and cross-validate models that maximize predictive accuracy. We implemented several improvements over the course of the project to reduce the computer time required to execute our algorithms and conduct experiments. Vectorizing code rather than running one or two-level loops was a critical but simple change. Converting loops to run over multiple cores was especially important in saving time. We also leveraged Amazon EC2 in the final days of the project, using 1-3 c4.8xlarge instances to execute multiple experiments simultaneously and making use of the 18 cores provided by those machines. We had hoped to also use Savio, the campus supercomputer, to distribute the computer across a cluster but were not able to get that working in the timeframe.
+The importance of performance was a key learning item from this project. The dataset was quite large, requiring both a reasonably high amount of memory but more importantly requiring huge computational capacity in order to train and cross-validate models that maximize predictive accuracy. We implemented several improvements over the course of the project to reduce the computer time required to execute our algorithms and conduct experiments. For testing we subsetted to small percentages of data (e.g. 5% or 20%). Vectorizing code rather than running one or two-level loops was a critical but simple change. Converting loops to run over multiple cores was especially important in saving time. We also leveraged Amazon EC2 in the final days of the project, using 1-3 [c4.8xlarge](https://aws.amazon.com/ec2/instance-types/) instances to execute multiple experiments simultaneously and making use of the 18 cores @ 2.6 GHz and 60 GB RAM provided by those machines. We had hoped to also use Savio, the campus supercomputer, to distribute the computer across a cluster but were not able to get that working in the timeframe.
 
-```{r, echo=F, message=F, warning=F}
+For source code management we used a private repository on github.com combined with RStudio's built-it git interface. While it took some setup and getting used to, this provided a helpful way to integrate work from multiple team members and was a great success overall. 
 
-```
 
 ## 11. References
+
+Breiman, L. (2001). Random forests. Machine learning, 45(1), 5-32.
 
 Manning, C. D., & Schütze, H. (1999). Foundations of statistical natural language processing. MIT press.
 
