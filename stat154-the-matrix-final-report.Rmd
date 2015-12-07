@@ -87,13 +87,17 @@ We use random forest and support vector machine algorithms on the word feature m
 
 ### Random Forest Model 
 
+The key hyperparameter to optimize in random forest is mtry, the number of predictors randomly selected at each split. A low mtry is useful when most of the features are related to the outcome variable, which allows each tree to be accurate but also have less correlation with other trees, thereby allowing the ensemble to have lowered variance and MSE. A higher mtry is needed when fewer features are related to the outcome. In that case each node will need to search a larger number of features to find ones that identify real relationships with the outcome. As a result each tree will tend to be more strongly correlated and the ensemble will not benefit as much from reduced variance. For this project we tested mtrys based on a multiplier of the square-root of the number of features, where that multiple was one of: {0.5, 1, 2, 4, 8}.
+
+[Add accuracy results]
+
+The second hyperparameter for random forest is the number of trees used in the ensemble. This parameter is not as critical to tune because random forest does not overfit as the number of trees increases (Breiman 2001). However, performance does reach a maximum as the number of trees increases, after which there is no real benefit to adding trees and it is not worth the computational time to fit that many trees. We use out-of-bag performance to review any plateauing in performance as the number of trees increases.
+
 ### Support Vector Machine Model 
 
-We chose a radial kernel for our SVM; future improvements might include comparing accuracy to a polynomial kernel.
+We chose a radial kernel for our SVM; future improvements might include comparing accuracy to a polynomial kernel. We tune the cost parameter, which modifies how many support vectors are incorporated into the model in order to balance bias and variance in model performance.
 
-```{r, echo=F, message=F, warning=F}
-
-```
+[Add accuracy results]
 
 ## 7. Classification of Power Feature Matrix
 
