@@ -1,101 +1,207 @@
 ---
 title: STAT 154 Final Report
 author: |
-    | The Matrix (Team 5)
-    | Stephanie Kim, Chris Kennedy, Dongkyun Kim, Saejin Kim, Zhenzheng Hu
-date: "12/6/2015"
+    | The Matrix (Team5)
+    | Stephanie Kim (25937115), Chris Kennedy (25947847), 
+    | Dongkyun Kim (22874163), Saejin Kim (21086782),
+    | Zhenzheng Hu (23715262)
+date: "12/7/2015"
 output:
   pdf_document:
     fig_caption: yes
     keep_tex: yes
+    toc: true
+    toc_depth: 2
+fontsize: 12pt
 ---
 
 ```{r, echo=F, message=F, warning=F}
 library(knitr)
 ```
 
-## <span style="color:black">1. Description</span>
-This project consists of an automated text categorization task (Sebastiani 2002). The data is classified into 4 genres; “Child”, “History”, “Religion”, and “Science”. Each category contains fractions of text files from that genre. “Child” category has 7,165 files, “History” category has 5,353 files, “Religion” category has 2,362 files, and “Science” category has 7,432 files. It is plausible for human to classify the text files from their contexts or specific words. The goal of this project is to train the machine so that it can classify the texts as how humans do. We use support vector machine and random forest methods, test on new text files, and measure the test error of each method.
+## 1. Description
+
+This project consists of an automated text categorization task (Sebastiani 2002) applied to text documents collected from Project Gutenberg, a free ebook archive. The documents are categorized into 4 genres: “Child”, “History”, “Religion”, and “Science”. A human would be able to classify these documents without much effort but it would be very time confusing to do so for thousands or millions of documents. The goal of this project is to develop a machine learning classifier to correctly categorize the texts as accurately as possible. Our primary feature set is a word-feature matrix which counts the number of a times each word occurs in a document, known as a bag of words model. We extend this word feature matrix with bigrams, trigrams, and meta-features related to statistics on word and character usage. We use support vector machine and random forest methods, test on new text files, and measure the test error of each method. Our final model is a gradient boosted machine.
 
 ```{r, echo=F, message=F, warning=F}
-df = data.frame("Categories"=c("Child","History","Religion","Science"),
-                "Number of files"=c("7,165 files","5,353 files","2,362 files","7,432 files"))
-kable(df)
+df = data.frame(c("Child", "History", "Religion", "Science"),
+                c("7,165", "5,353", "2,362", "7,432"))
+names(df) = c("Categories", "Number of files")
+kable(df, caption="Documents in each category")
 ```
 
-## <span style="color:black">2. Feature Creation</span>
+## 2. Feature Creation
 
-In order to do text mining, we loaded the text data as a corpus, which is a collection of separate texts. The tm package provides several text transformation or word count commands. The tm_map() command is applied to the corpus to make transformations such as excluding too common or rare words, convert every word to lowercase, and remove punctuations or words. We stemmed the words to consolidate slight variations of word suffixes into a more concise feature set (Porter 1980). We also removed the lengthy header and footer text created by Project Gutenberg that would likely hurt our predictive accuracy.
+In order to do text mining, we loaded the text data as a corpus, which is a collection of separate texts. The tm package provides several text transformation or word count commands. The tm_map() command is applied to the corpus to make transformations such as excluding too common or rare words, convert every word to lowercase, and remove punctuations or words. We stemmed the words to consolidate slight variations of word suffixes into a more concise feature set (Porter 1980). Terms that occurred in fewer than 1% of documents were excluded at this stage.
 
-The DocumentTermMatrix() command is then applied to make a dictionary of every unique word of the loaded text files and count the appearances of each word.  The outcome is in form of a data frame. Thus each row is the text file, each column is the unique word, and each cell is the word count in specific text file (22308 * 12262 data frame). This word feature matrix approach is commonly known as a bag of words model (Manning &  Schütze 1999, 7.2).
+We also removed the lengthy header and footer text created by Project Gutenberg that would likely hurt our predictive accuracy. This was particularly time-consuming because there is no standard string that separates the meta-data from the literary data in Project Gutenberg documents; we strongly recommend that Project Gutenberg develop such a standard to facilitate comptuer processing of its documents in the future. Moreover, a set of documents, roughly 600 or more, consisted entirely of Project Gutenberg legal or other non-literary text. We removed some of those documents as training examples although we would have liked to spend more time removing the remainder (e.g. using outlier detection methods) so that their feature distributions would not influence the prediction algorithms.
+
+The DocumentTermMatrix() command is then applied to make a dictionary of every unique word of the loaded text files and count the appearances of each word.  The outcome is in the form of a data frame, where each row is a text document, each column is a unique word, and each cell is the count of that word in the text document. The resulting data frame has 22,305 rows and  12,196 columns. This word feature matrix approach is commonly known as a bag of words representation (Manning &  Schütze 1999, 7.2).
 
 We then generated a target vector as a factor with values of “Child”, “History”, “Religion”, and “Science” which are the tags of the texts’ genre.
 
 ```{r, echo=FALSE}
 
 ```
-## <span style="color:black">3. Unsupervised Feature Filtering</span>
+## 3. Unsupervised Feature Filtering
 
-Before applying the minimum or maximum threshold to the feature matrix, we check if specific word is included in each text. In other words we count how many documents use that word. The maximum threshold we applied is if a word is in at least 70% of documents. Here we removed 11 words. The minimum threshold is if a word is in at least 200 documents. The number of word features we ended with is 7159 features. So our feature matrix is 22308 * 7159 data frame.
+In order to reduce the feature set size and limit overfitting, we tally how many documents use each word. We chose a minimum threshold of 50 documents; any word with less usage was removed from the feature matrix. We selected a relatively low minimum so that the machine learning algorithms could achieve maximum accuracy through a large feature set - aggressive pruning would limit our ability to detect patterns in word usage. Similarly, we chose not to limit on the maximum number of documents using a feature under the theory that words with high document coverage could still provide useful differentiation across categories. Our final word feature matrix contains 22,305 rows and 11,218 word-feature columns.
+
+![Distribution of word features](visuals/3-feature-filtering-histogram-pruned.png)
 
 ```{r, echo=F, message=F, warning=F}
 ```
 
-## <span style="color:black">4. Power Feature Extraction</span>
+## 4. Power Feature Extraction
 
 The power features are the variables that help distinguish files in different categories. These features consist of three kinds: Word-based power features, sentence-based power features, and N-grams.The following are the features from each file considered to help prediction. 
 
-Before applying the minimum or maximum threshold to the feature matrix, we check if specific word is included in each text. In other words we count how many documents use that word. The maximum threshold we applied is if a word is in at least 70% of documents. Here we removed 11 words. The minimum threshold is if a word is in at least 200 documents. The number of word features we ended with is 7159 features. So our feature matrix is 22308 * 7159 data frame.
-```{r, echo=FALSE}
-
-```
-
-## <span style="color:black">5. Classification of Power Word Feature Matrix</span>
-(1) Word-based power features: Features are collected using the unfiltered word matrix, which presents the number of appearance of every word in a text.
+(1) Word-based power features: 6 features are collected using the unfiltered word matrix, which presents the number of appearance of every word in a text.
  
 ```{r, echo=F, message=F, warning=F}
+df2 = data.frame(c("words_count","chars_count","words_avg_length","words_distinct","sd_words","word_diversity"),
+                c("Number of words","Number of characters","Average words length (Number of characters/Number of words)","Number of words that appears in a text at least once","Standard deviation of word length","Word diversity (Number of distinct words/Number of words)"))
+names(df2) = c("Power Feature", "Definition")
+kable(df2,caption="Word-based power features")
 ```
  
-(2) Sentence-based power features: We first splitted the text files into sentences and then collected the power features by inspecting the list of sentences.
+(2) Sentence-based power features: We first split the text files into sentences and then collected 6 power features by inspecting the list of sentences.
 
 ```{r, echo=F, message=F, warning=F}
+df3 = data.frame(c("sentence_count","sentence_avg_length","4digit_nums","digit_count","question_marks","exclamation_points"),
+                c("Number of sentences","Average length of sentences","Number of 4-digit number","Number of digits","Number of question marks","Number of exclamation points"))
+names(df3) = c("Power Feature", "Definition")
+kable(df3,caption="Sentence-based power features")
 ```
 
-(3) N-grams: N-gram is a sequence of N words sliced from a longer string. The word features we described above are unigrams. It is known that the N-gram-based approach to text categorization is tolerant of textual errors, fast and robust. This approach works very well for language classification (William & John, 1994). In this project, for better prediction, other than unigrams we also included the bigram trigram features. We were able to make a feature matrix of N-grams with the DocumentTermMatrix() command as we did for the word features but by adjusting the command with the N-gram-tokenizer.
+(3) N-grams: The N-gram is a sequence of N words sliced from a longer string. The word features we described above are unigrams. It is known that the N-gram-based approach to text categorization is tolerant of textual errors, fast and robust. This approach works very well for language classification (William & John, 1994). In this project, for better prediction, other than unigrams we also included the 4,736 bigram and 497 trigram features. We were able to make a feature matrix of N-grams with the DocumentTermMatrix() command as we did for the word features but by adjusting the command with the N-gram-tokenizer. The trigram features were especially useful for identifying documents that only included Project Gutenberg meta text, because non-literary legal phrases tended to occur frequently in those documents. The 10 most frequent bigrams were: "sam tim", "dont know", "once mor", "very much", "two thre", "much mor", "one day", "very wel", "first tim", "few minut". The 5 most frequent trigrams were: "made up mind", "held out hand", "make up mind", "over over again", and "days following each" - this ignores the clear Gutenberg trigams, although Gutenberg text may still pollute these trigrams.
 
-## <span style="color:black">5. Word and Power Feature Combination</span>
+As a result, we have 5,245 power features in total. The power feature matrix has dimension 22,305 $\times$ 5,245.
 
-## <span style="color:black">6. Classification of Word Feature Matrix</span>
+The power features were quite computationally intense to create, taking about 5 hours in total when using Amazon EC2 computers. Unfortunately we were not able to upgrade the algorithm to distribute over multiple cores, which limited our performance. The end result was that we could not experiment and iterate as much as we would have liked on the power features.
 
-```{r, echo=F, message=F, warning=F}
+## 5. Word and Power Feature Combination
 
-```
+We combine our word and power features to generate a final feature matrix of 22,305 documents and 16,463 features.
 
-## <span style="color:black">7. Classification of Power Word Feature Matrix</span>
+## 6. Classification of Word Feature Matrix
 
-```{r, echo=F, message=F, warning=F}
+We use random forest and support vector machine algorithms on the word feature matrix to measure our classification accuracy. Model hyperparameters are tuned using 10-fold cross-validation.
 
-```
+### Random Forest Model 
 
-## <span style="color:black">8. Classification of Combined Feature Matrix</span>
+The key hyperparameter to optimize in random forest is mtry, the number of predictors randomly selected at each split. A low mtry is useful when most of the features are related to the outcome variable, which allows each tree to be accurate but also have less correlation with other trees, thereby allowing the ensemble to have lowered variance and MSE. A higher mtry is needed when fewer features are related to the outcome. In that case each node will need to search a larger number of features to find ones that identify real relationships with the outcome. As a result each tree will tend to be more strongly correlated and the ensemble will not benefit as much from reduced variance. For this project we tested mtrys based on a multiplier of the square-root of the number of features, where that multiple was one of: {0.5, 1, 2, 4, 8}.
 
-```{r, echo=F, message=F, warning=F}
+Based on cross-validation, we found that a multiplier of 2, consisting of 212 word features here, performed best. Our error rate was 89% overall, with per class accuracies of: 87% for children, 82% for history, 82% for religion, and 96% for science.
 
-```
+The second hyperparameter for random forest is the number of trees used in the ensemble. This parameter is not as critical to tune because random forest does not overfit as the number of trees increases (Breiman 2001, theorem 1.2). However, performance does reach a maximum as the number of trees increases, after which there is no real benefit to adding trees and it is not worth the computational time to fit that many trees. We use out-of-bag performance to review any plateauing in performance as the number of trees increases.
 
-## <span style="color:black">9. Final Model</span>
+Based on this analysis we found that 200 trees was sufficient to achive a near-maximum accuracy with random forest. However, given more time and computational resources we would have examined trees counts up to 500 or even 1000 in order to eek out a little more performance potentially.
 
-```{r, echo=F, message=F, warning=F}
+![Out-of-bag error rates for number of trees](visuals/6-rf-error-rate-overall-very-slow.png)
 
-```
+![Out-of-bag error rates for number of trees, by class](visuals/6-rf-error-rate-per-class.png)
 
-## <span style="color:black">10. Validation Set</span>
+Most important predictors for random forest included the (stemmed) words: "planet", "god", "boy", "king", "honour", "christ", "friend", "mother".
 
-```{r, echo=F, message=F, warning=F}
+$\pagebreak$
 
-```
+### Support Vector Machine Model 
 
-## <span style="color:black">11. References</span>
-```{r, echo=FALSE}
+We chose a radial kernel for our SVM; future improvements might include comparing accuracy to a polynomial kernel. We tune the cost parameter, which modifies how many support vectors are incorporated into the model in order to balance bias and variance in model performance.
 
-```
+We found cost = 10 to be optimal from cross-validation, yielding an overall accuracy of 86%. Per-class accuracies were -- child: 85%, history: 78%, religion: 80%, science: 95%.
+
+## 7. Classification of Power Feature Matrix
+
+We compare those results to the accuracy we achieve only using the power feature matrix. Again, model hyperparameters are tuned using 10-fold cross-validation.
+
+### Random Forest Model 
+
+We achieve an accuracy of 75% using only the power features. Per-class accuracies were -- child: 84%, history: 57%, religion: 55%, science: 84%%.
+
+The most important variables within the power feature matrix were:
+
+1. [Count of distinct words]
+2. [Number of characters]
+3. [Average words per sentence]
+4. [Count of words]
+5. [Word diversity]
+6. [Count of exclamation points]
+7. [Standard deviation of the number of words]
+8. [Average word length]
+9. [Count of numerical digits]
+10. "Thou art"
+11. [Number of sentences]
+12. "Jesus christ"
+13. [Count of 4-digit numbers]
+14. "Thou hast"
+15. "Solar system"
+16. "Christian church"
+17. "God god"
+18. "Thou shalt"
+19. "Little boy"
+20. [Count of question marks]
+
+This shows that the word, sentence, and document-based statistics were helpful, as were the bigrams. One trigram showed up in the top 50 features: "made up mind", suggesting that the trigams provided some performance boost, if small. Yet without the word features we see a clear drop in performance.
+
+### Support Vector Machine Model 
+
+Using only the power feature matrix we were able to achieve an accuracy of 74% using SVM. The optimal cost was estimated to be 10 again. Clearly SVM benefits from the word feature matrix in addition to the power features. Per-class accuracies are -- child: 83%, history: 62%, religion: 52%, science: 82%.
+
+## 8. Classification of Combined Feature Matrix
+
+Now we combine our word and power features and estimate the accuracy using cross-validation. We find significant improvements over both the original word feature result and the power feature results. This shows the importance of the word features combined with feature engineering to add n-grams and other statistics.
+
+### Random Forest Model 
+
+We achieve a final accuracy of 88% using both word and power features. Per-class accuracies are -- child: 85%, history: 78%, religion: 80%, science: 95%. We found mtry = 4 * sqrt(p) = 513 to be optimal.
+
+### Support Vector Machine Model 
+
+Our SVM final accuracy was surprisingly only 65% using both word and power features, based on an optimal cost parameter of 10. Per-class accuracies are -- child: 74%, history: 66%, religion: 23%, science: 68%. The religion category experienced particularly low performance in the combined feature matrix analysis. This may be due to some combination of overfitting to the wider feature set and/or needing more fine-grained tuning to identify the optimal cost parameter.
+
+## 9. Final Model
+
+For our final model we used gradient boosted machines to maximize our prediction accuracy. We switched from the gbm package to the xgboost package because the latter supports multicore training for each model, which allowed us to leverage 18-core Amazon EC2 instances to speed up model training. With the gbm package were still able to use multicore processing across cross-validation folds, but that would limit us to 10 cores at a time. The xgboost package is often a top algorithm on Kaggle competitions (see e.g. http://blog.kaggle.com/2015/12/03/dato-winners-interview-1st-place-mad-professors/) so becoming familiar with the package was a helpful learning process in its own right.
+
+GBM is a slightly more complex model for hyperparameter tuning, having 4 main tuning parameters: the number of trees, the depth of each tree, shrinkage, and (optionally) minimum observations per split. Our tuning space spanned -- ntrees: {100, 500, 1000}, depth: {1, 2, 3}, shrinkage: {0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.01}, minimum observations: {10, 50}. Our tuned parameters were: ntrees = 1000, depth = 2, shrinkage = 0.2, minobspernode = 50. This yielded an accuracy of 97%, with per-class accuracies of -- child: 98%, history: 96%, religion: 93%, science: 99%.
+
+The top 15 most important variabled identified by our final model were:
+
+1. "Glove"
+2. [Average word length]
+3. "Pamper"
+4. [Character count]
+5. "Bound"
+6. [Sentence count]
+7. "Fate"
+8. "Chose"
+9. "Shadow"
+10. [Number of distinct words]
+11. [Total number of words]
+12. "Fresh"
+13. "Mous"
+14. "Jone"
+15. "Spent"
+
+## 10. Validation Set
+
+We submitted our model to the Kaggle competition leaderboard and achieved a disappointing overall accuracy of 89.0%. This was much lower than our cross-validation results suggested we would achieve, although consistent with applying the GBM model to the practice set. We believe that our verification code contains an error, probably in generating or merging the power feature matrix, which prevents the model from leveraging the calculated features as we would expect. Our accuracy was also likely limited by our inability to remove the documents that consisted entirely of Project Gutenberg meta-text, which we unfortunately ran out of time to fully remove from our training data.
+
+The importance of performance was a key learning item from this project. The dataset was quite large, requiring both a reasonably high amount of memory but more importantly requiring huge computational capacity in order to train and cross-validate models that maximize predictive accuracy. We implemented several improvements over the course of the project to reduce the computer time required to execute our algorithms and conduct experiments. For testing we subsetted to small percentages of data (e.g. 5% or 20%). Vectorizing code rather than running one or two-level loops was a critical but simple change. Converting loops to run over multiple cores was especially important in saving time. We also leveraged Amazon EC2 in the final days of the project, using 1-3 [c4.8xlarge](https://aws.amazon.com/ec2/instance-types/) instances to execute multiple experiments simultaneously and making use of the 18 cores @ 2.6 GHz and 60 GB RAM provided by those machines. We had hoped to also use Savio, the campus supercomputer, to distribute the computer across a cluster but were not able to get that working in the timeframe.
+
+For source code management we used a private repository on github.com combined with RStudio's built-it git interface. While it took some setup and getting used to, this provided a helpful way to integrate work from multiple team members and was a great success overall. 
+
+
+## 11. References
+
+Breiman, L. (2001). Random forests. Machine learning, 45(1), 5-32.
+
+Manning, C. D., & Schütze, H. (1999). Foundations of statistical natural language processing. MIT press.
+
+Porter, M. F. (1980). An algorithm for suffix stripping. Program, 14(3), 130-137.
+
+Sebastiani, F. (2002). Machine learning in automated text categorization. ACM computing surveys (CSUR), 34(1), 1-47.
+
+William, B. Cavnar & John M. Trenkle. (1994). N-Gram-Based Text Categorization. Environmental Research Institute of Michigan.

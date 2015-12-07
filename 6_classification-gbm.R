@@ -38,7 +38,7 @@ if (F) {
 # Possible speed configurations.
 speed_types = c("instant", "fast", "medium", "slow", "very slow", "ideal")
 # Choose which option you want, based on speed vs. accuracy preference.
-speed = speed_types[4]
+speed = speed_types[5]
 cat("Speed configuration:", speed, "\n")
 
 set.seed(5)
@@ -146,11 +146,13 @@ if (speed == "instant") {
   svm_cost_seq = c(1, 5, 10)
   
   # GBM parameters
-  gbm_ntrees = c(1000, 2000)
-  gbm_depth = c(2, 4)
-  gbm_shrinkage = c(0.3, 0.2, 0.1)
-  gbm_minobspernode = c(10, 50)
-  #gbm_minobspernode = c(10)
+  # gbm_ntrees = c(1000, 2000)
+  gbm_ntrees = c(1000)
+  gbm_depth = c(2, 3)
+  #gbm_shrinkage = c(0.3, 0.2, 0.1)
+  gbm_shrinkage = c(0.4, 0.3, 0.2, 0.1)
+  #gbm_minobspernode = c(10, 50)
+  gbm_minobspernode = c(10)
 } else {
   # Unclear how long this would take to complete, but we would want to use Amazon EC2 to run (or Savio).
   
@@ -348,10 +350,17 @@ if (data_subset_ratio != 1) {
   print(test_results)
 }
 
+# Finally, refit on 100% of the data.
+y_int = as.numeric(data[, 1]) - 1
+model = xgboost(data=data.matrix(data[, -1]), label=y_int, objective="multi:softprob", nround = params$ntrees, max_depth = params$depth, minchildweight = params$minobspernode, eta = params$shrinkage, num_class=length(target_classes), verbose=0)
+
+# Review feature importance - top 50 most important features.
+gbm_importance = xgb.importance(colnames(data), model=model)[1:50, ]
+
 gbm = model
 
 # Save the full model as well as the cross-validation and test-set results.
-save(gbm, cv_results, grid_results, test_results, file="data/models-gbm.RData")
+save(gbm, gbm_importance, cv_results, grid_results, test_results, file="data/models-gbm.RData")
 
 
 #########################################
