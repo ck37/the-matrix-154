@@ -3,7 +3,7 @@ title: STAT 154 Final Report
 author: |
     | The Matrix (Team5)
     | Stephanie Kim (25937115), Chris Kennedy (25947847), 
-    | Dongkyun Kim (22874163), Saejin Kim (00000000), Zhenzheng Hu (23715262)
+    | Dongkyun Kim (22874163), Saejin Kim (21086782), Zhenzheng Hu (23715262)
 date: "12/7/2015"
 output:
   pdf_document:
