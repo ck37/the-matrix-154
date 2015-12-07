@@ -75,7 +75,7 @@ kable(df3)
 
 (3) N-grams: The N-gram is a sequence of N words sliced from a longer string. The word features we described above are unigrams. It is known that the N-gram-based approach to text categorization is tolerant of textual errors, fast and robust. This approach works very well for language classification (William & John, 1994). In this project, for better prediction, other than unigrams we also included the 4,736 bigram and 497 trigram features. We were able to make a feature matrix of N-grams with the DocumentTermMatrix() command as we did for the word features but by adjusting the command with the N-gram-tokenizer. The trigram features were especially useful for identifying documents that only included Project Gutenberg meta text, because non-literary legal phrases tended to occur frequently in those documents.
 
-As a result, we have 5,245 power features in total. The power feature matrix has dimension 22,305 * 5,245.
+As a result, we have 5,245 power features in total. The power feature matrix has dimension 22,305 $\times$ 5,245.
 
 ## <span style="color:black">5. Word and Power Feature Combination</span>
 
