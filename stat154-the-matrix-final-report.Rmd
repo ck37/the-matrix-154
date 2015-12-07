@@ -2,8 +2,8 @@
 title: STAT 154 Final Report
 author: |
     | The Matrix (Team5)
-    | Stephanie Kim(25937115), Chris Kennedy(25947847), 
-    | Dongkyun Kim(22874163), Saejin Kim(00000000), Zhenzheng Hu(23715262)
+    | Stephanie Kim (25937115), Chris Kennedy (25947847), 
+    | Dongkyun Kim (22874163), Saejin Kim (00000000), Zhenzheng Hu (23715262)
 date: "12/7/2015"
 output:
   pdf_document:
@@ -20,12 +20,13 @@ library(knitr)
 
 ## <span style="color:black">1. Description</span>
 
-This project consists of an automated text categorization task (Sebastiani 2002). The data is classified into 4 genres; “Child”, “History”, “Religion”, and “Science”. Each category contains fractions of text files from that genre. “Child” category has 7,165 files, “History” category has 5,353 files, “Religion” category has 2,362 files, and “Science” category has 7,432 files. It is plausible for human to classify the text files from their contexts or specific words. The goal of this project is to train the machine so that it can classify the texts as how humans do. We use support vector machine and random forest methods, test on new text files, and measure the test error of each method.
+This project consists of an automated text categorization task (Sebastiani 2002) applied to text documents collected from Project Gutenberg, a free ebook archive. The documents are categorized into 4 genres: “Child”, “History”, “Religion”, and “Science”. The goal of this project is to develop a machine learning classifier to correctly categorize the texts as accurately as possible. Our primary feature set is a word-feature matrix which counts the number of a times each word occurs in a document, known as a bag of words model. We extend this word feature matrix with bigrams, trigrams, and meta-features related to statistics on word and character usage. We use support vector machine and random forest methods, test on new text files, and measure the test error of each method. Our final model is a gradient boosted machine.
 
 ```{r, echo=F, message=F, warning=F}
-df = data.frame("Categories"=c("Child","History","Religion","Science"),
-                "Number of files"=c("7,165 files","5,353 files","2,362 files","7,432 files"))
-kable(df)
+df = data.frame(c("Child", "History", "Religion", "Science"),
+                c("7,165", "5,353", "2,362", "7,432"))
+names(df) = c("Categories", "Number of files")
+kable(df, caption="Documents in each category")
 ```
 
 ## <span style="color:black">2. Feature Creation</span>
