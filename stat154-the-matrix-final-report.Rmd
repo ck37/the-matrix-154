@@ -191,7 +191,7 @@ We submitted our model to the Kaggle competition leaderboard and achieved a disa
 
 The importance of performance was a key learning item from this project. The dataset was quite large, requiring both a reasonably high amount of memory but more importantly requiring huge computational capacity in order to train and cross-validate models that maximize predictive accuracy. We implemented several improvements over the course of the project to reduce the computer time required to execute our algorithms and conduct experiments. For testing we subsetted to small percentages of data (e.g. 5% or 20%). Vectorizing code rather than running one or two-level loops was a critical but simple change. Converting loops to run over multiple cores was especially important in saving time. We also leveraged Amazon EC2 in the final days of the project, using 1-3 [c4.8xlarge](https://aws.amazon.com/ec2/instance-types/) instances to execute multiple experiments simultaneously and making use of the 18 cores @ 2.6 GHz and 60 GB RAM provided by those machines. We had hoped to also use Savio, the campus supercomputer, to distribute the computer across a cluster but were not able to get that working in the timeframe.
 
-For source code management we used a private repository on github.com combined with RStudio's built-it git interface. While it took some setup and getting used to, this provided a helpful way to integrate work from multiple team members and was a great success overall. 
+For source code management we used a private repository on github.com combined with RStudio's built-in git interface. While it took some setup and getting used to, this provided a helpful way to integrate work from multiple team members and was a great success overall. 
 
 
 ## 11. References
