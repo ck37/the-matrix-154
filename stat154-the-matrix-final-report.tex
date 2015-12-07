@@ -1,4 +1,4 @@
-\documentclass[]{article}
+\documentclass[12pt,]{article}
 \usepackage{lmodern}
 \usepackage{amssymb,amsmath}
 \usepackage{ifxetex,ifluatex}
@@ -65,13 +65,14 @@
   \title{STAT 154 Final Report}
   \pretitle{\vspace{\droptitle}\centering\huge}
   \posttitle{\par}
-  \author{The Matrix (Team 5)\\Stephanie Kim, Chris Kennedy, Dongkyun Kim, Saejin
-Kim, Zhenzheng Hu}
+  \author{The Matrix (Team5)\\Stephanie Kim(25937115), Chris
+Kennedy(25947847),\\Dongkyun Kim(22874163), Saejin Kim(00000000),
+Zhenzheng Hu(23715262)}
   \preauthor{\centering\large\emph}
   \postauthor{\par}
   \predate{\centering\large\emph}
   \postdate{\par}
-  \date{12/6/2015}
+  \date{12/7/2015}
 
 
 
@@ -80,6 +81,11 @@ Kim, Zhenzheng Hu}
 \maketitle
 
 
+{
+\hypersetup{linkcolor=black}
+\setcounter{tocdepth}{2}
+\tableofcontents
+}
 \subsection{{1. Description}}\label{description}
 
 This project consists of an automated text categorization task
@@ -122,9 +128,9 @@ The DocumentTermMatrix() command is then applied to make a dictionary of
 every unique word of the loaded text files and count the appearances of
 each word. The outcome is in form of a data frame. Thus each row is the
 text file, each column is the unique word, and each cell is the word
-count in specific text file (22308 * 12262 data frame). This word
-feature matrix approach is commonly known as a bag of words model
-(Manning \& Schütze 1999, 7.2).
+count in specific text file. This data frame has a dimension of 22308 *
+12262. This word feature matrix approach is commonly known as a bag of
+words model (Manning \& Schütze 1999, 7.2).
 
 We then generated a target vector as a factor with values of ``Child'',
 ``History'', ``Religion'', and ``Science'' which are the tags of the
@@ -149,47 +155,84 @@ different categories. These features consist of three kinds: Word-based
 power features, sentence-based power features, and N-grams.The following
 are the features from each file considered to help prediction.
 
-Before applying the minimum or maximum threshold to the feature matrix,
-we check if specific word is included in each text. In other words we
-count how many documents use that word. The maximum threshold we applied
-is if a word is in at least 70\% of documents. Here we removed 11 words.
-The minimum threshold is if a word is in at least 200 documents. The
-number of word features we ended with is 7159 features. So our feature
-matrix is 22308 * 7159 data frame.
+\begin{enumerate}
+\def\labelenumi{(\arabic{enumi})}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  Word-based power features: 6 features are collected using the
+  unfiltered word matrix, which presents the number of appearance of
+  every word in a text.
+\end{enumerate}
 
-\subsection{{5. Classification of Power Word Feature
-Matrix}}\label{classification-of-power-word-feature-matrix}
+\begin{longtable}[c]{@{}ll@{}}
+\toprule
+Power.Feature & Definition\tabularnewline
+\midrule
+\endhead
+words\_count & Number of words\tabularnewline
+chars\_count & Number of characters\tabularnewline
+words\_avg\_length & Average words length (Number of characters/Number
+of words)\tabularnewline
+words\_distinct & Number of words that appears in a text at least
+once\tabularnewline
+sd\_words & Standard deviation of word length\tabularnewline
+word\_diversity & Word diversity (Number of distinct words/Number of
+words)\tabularnewline
+\bottomrule
+\end{longtable}
 
 \begin{enumerate}
 \def\labelenumi{(\arabic{enumi})}
-\item
-  Word-based power features: Features are collected using the unfiltered
-  word matrix, which presents the number of appearance of every word in
-  a text.
+\setcounter{enumi}{1}
+\itemsep1pt\parskip0pt\parsep0pt
 \item
   Sentence-based power features: We first splitted the text files into
-  sentences and then collected the power features by inspecting the list
+  sentences and then collected 6 power features by inspecting the list
   of sentences.
+\end{enumerate}
+
+\begin{longtable}[c]{@{}ll@{}}
+\toprule
+Power.Feature & Definition\tabularnewline
+\midrule
+\endhead
+sentence\_count & Number of sentences\tabularnewline
+sentence\_avg\_length & Average length of sentences\tabularnewline
+4digit\_nums & Number of 4-digit number\tabularnewline
+digit\_count & Number of digits\tabularnewline
+question\_marks & Number of question marks\tabularnewline
+exclamation\_points & Number of exclamation points\tabularnewline
+\bottomrule
+\end{longtable}
+
+\begin{enumerate}
+\def\labelenumi{(\arabic{enumi})}
+\setcounter{enumi}{2}
+\itemsep1pt\parskip0pt\parsep0pt
 \item
-  N-grams: N-gram is a sequence of N words sliced from a longer string.
-  The word features we described above are unigrams. It is known that
-  the N-gram-based approach to text categorization is tolerant of
+  N-grams: The N-gram is a sequence of N words sliced from a longer
+  string. The word features we described above are unigrams. It is known
+  that the N-gram-based approach to text categorization is tolerant of
   textual errors, fast and robust. This approach works very well for
   language classification (William \& John, 1994). In this project, for
-  better prediction, other than unigrams we also included the bigram
-  trigram features. We were able to make a feature matrix of N-grams
-  with the DocumentTermMatrix() command as we did for the word features
-  but by adjusting the command with the N-gram-tokenizer.
+  better prediction, other than unigrams we also included the 4736
+  bigram and 497 trigram features. We were able to make a feature matrix
+  of N-grams with the DocumentTermMatrix() command as we did for the
+  word features but by adjusting the command with the N-gram-tokenizer.
 \end{enumerate}
+
+As a result, we have 5245 power features in total.
 
 \subsection{{5. Word and Power Feature
 Combination}}\label{word-and-power-feature-combination}
+
+22308 * 7159 22305 * 5245
 
 \subsection{{6. Classification of Word Feature
 Matrix}}\label{classification-of-word-feature-matrix}
 
 \subsection{{7. Classification of Power Word Feature
-Matrix}}\label{classification-of-power-word-feature-matrix-1}
+Matrix}}\label{classification-of-power-word-feature-matrix}
 
 \subsection{{8. Classification of Combined Feature
 Matrix}}\label{classification-of-combined-feature-matrix}
@@ -199,5 +242,17 @@ Matrix}}\label{classification-of-combined-feature-matrix}
 \subsection{{10. Validation Set}}\label{validation-set}
 
 \subsection{{11. References}}\label{references}
+
+Manning, C. D., \& Schütze, H. (1999). Foundations of statistical
+natural language processing. MIT press.
+
+Porter, M. F. (1980). An algorithm for suffix stripping. Program, 14(3),
+130-137.
+
+Sebastiani, F. (2002). Machine learning in automated text
+categorization. ACM computing surveys (CSUR), 34(1), 1-47.
+
+William, B. Cavnar \& John M. Trenkle. (1994). N-Gram-Based Text
+Categorization. Environmental Research Institute of Michigan.
 
 \end{document}
