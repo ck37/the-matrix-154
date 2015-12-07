@@ -167,7 +167,7 @@ For our final model we used gradient boosted machines to maximize our prediction
 
 GBM is a slightly more complex model for hyperparameter tuning, having 4 main tuning parameters: the number of trees, the depth of each tree, shrinkage, and (optionally) minimum observations per split. Our tuning space spanned -- ntrees: {100, 500, 1000}, depth: {1, 2, 3}, shrinkage: {0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.01}, minimum observations: {10, 50}. Our tuned parameters were: ntrees = 1000, depth = 2, shrinkage = 0.2, minobspernode = 50. This yielded an accuracy of 97%, with per-class accuracies of -- child: 98%, history: 96%, religion: 93%, science: 99%.
 
-The top 15 most important variabled identified by our final model were:
+The top 15 most important variables identified by our final model were:
 
 1. "Glove"
 2. [Average word length]
