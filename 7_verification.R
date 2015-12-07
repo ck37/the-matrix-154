@@ -13,11 +13,11 @@ library(e1071)
 library(xgboost)
 library(doMC)
 
-verification_dir = "inbound/Practice"
-verification_labels = "inbound/Practice_label.csv"
+#verification_dir = "inbound/Practice"
+#verification_labels = "inbound/Practice_label.csv"
 
-#verification_dir = "inbound/Validation"
-#verification_labels = ""
+verification_dir = "inbound/Validation"
+verification_labels = ""
 
 # Load our main functions.
 source("function_library.R")
@@ -34,7 +34,8 @@ setup_multicore()
 # Load GBM model
 #load("data/models-gbm-2015-12-03-slow-v1.RData")
 #load("data/models-gbm-2015-12-05-slow-sentences.RData")
-load("data/models-gbm-2015-12-06-slow-v1.RData")
+#load("data/models-gbm-2015-12-06-slow-v1.RData")
+load("data/models-gbm.RData")
 
 # Define the models we want to evaluate.
 models = list(#rf = list(model=rf, export_name="rf-export.csv"),
@@ -73,10 +74,22 @@ class(combined_docs)
 
 # Add sentence features.
 sentence_features = power_features_sentence(combined_docs)
-sentence_features = power_features_sentence(imported_docs[[1]])
+#sentence_features = power_features_sentence(imported_docs[[1]])
+
+# Review summmary stats on word features.
+apply(sentence_features, FUN=summary, MARGIN=2)
+
+# Check for NAs.
+apply(sentence_features, FUN=function(x){sum(is.na(x))}, MARGIN=2)
 
 # Add word features.
 word_features = power_features_dtm(docs)
+
+# Review summmary stats on word features.
+apply(word_features, FUN=summary, MARGIN=2)
+
+# Check for NAs.
+apply(word_features, FUN=function(x){sum(is.na(x))}, MARGIN=2)
 
 # Add bigrams
 bigram_features = power_features_ngrams(combined_docs, stopwords, ngrams = 2)
@@ -137,6 +150,11 @@ for (model_name in names(models)) {
     print(table(predictions_int, labels$category))
     models[[model_name]]$accuracy = accuracy
     models[[model_name]]$predictions = predict_export
+    
+    incorrect_predictions = rownames(labels[predictions_int != labels$category,])
+    
+    #cat("Incorrectly predicted documents:")
+    #cat(paste0(incorrect_predictions, collapse=", "), "\n")
   }
 }
 
@@ -149,8 +167,7 @@ gc()
 
 # Review script execution time.
 if (exists("script_timer")) {
-  cat("Script execution time:\n")
-  print(proc.time() - script_timer)
+  cat("Script execution time:", round((proc.time() - script_timer)[3] / 60, 0), "minutes.\n")
   rm(script_timer)
 }
 
