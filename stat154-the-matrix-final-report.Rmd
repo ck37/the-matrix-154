@@ -155,11 +155,11 @@ Now we combine our word and power features and estimate the accuracy using cross
 
 ### Random Forest Model 
 
-We achieve a final accuracy of 88% using both word and power features. Per-class accuracies are -- child: 85%, history: 78%, religion: 80%, science: 95%.
+We achieve a final accuracy of 88% using both word and power features. Per-class accuracies are -- child: 85%, history: 78%, religion: 80%, science: 95%. We found mtry = 4 * sqrt(p) = 513 to be optimal.
 
 ### Support Vector Machine Model 
 
-Our SVM final accuracy was surprisingly only 65% using both word and power features. Per-class accuracies are -- child: 74%, history: 66%, religion: 23%, science: 68%. The religion category experienced particularly low performance in the combined feature matrix analysis. This may be due to some combination of overfitting to the wider feature set and/or needing more fine-grained tuning to identify the optimal cost parameter.
+Our SVM final accuracy was surprisingly only 65% using both word and power features, based on an optimal cost parameter of 10. Per-class accuracies are -- child: 74%, history: 66%, religion: 23%, science: 68%. The religion category experienced particularly low performance in the combined feature matrix analysis. This may be due to some combination of overfitting to the wider feature set and/or needing more fine-grained tuning to identify the optimal cost parameter.
 
 ## 9. Final Model
 
