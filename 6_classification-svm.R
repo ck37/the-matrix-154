@@ -13,9 +13,11 @@ library(dplyr)
 library(doMC) # For multicore processing.
 
 # Load the docs file if it doesn't already exist.
-if (!exists("data", inherits=F)) {
+#if (!exists("data", inherits=F)) {
+if (T) {
   load("data/filtered-docs.Rdata")
-  data = cbind(targets, docs)
+  load("data/power-features.RData")
+  data = cbind(targets, docs, power_features)
   rm(docs)
   gc()
 }
@@ -27,7 +29,7 @@ if (!exists("data", inherits=F)) {
 # Possible speed configurations.
 speed_types = c("instant", "fast", "medium", "slow", "very slow", "ideal")
 # Choose which option you want, based on speed vs. accuracy preference.
-speed = speed_types[4]
+speed = speed_types[2]
 cat("Speed configuration:", speed, "\n")
 
 set.seed(5)
