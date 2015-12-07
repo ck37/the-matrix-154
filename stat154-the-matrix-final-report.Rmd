@@ -61,7 +61,7 @@ The power features are the variables that help distinguish files in different ca
 df2 = data.frame(c("words_count","chars_count","words_avg_length","words_distinct","sd_words","word_diversity"),
                 c("Number of words","Number of characters","Average words length (Number of characters/Number of words)","Number of words that appears in a text at least once","Standard deviation of word length","Word diversity (Number of distinct words/Number of words)"))
 names(df2) = c("Power Feature", "Definition")
-kable(df2)
+kable(df2,caption="Word-based power features")
 ```
  
 (2) Sentence-based power features: We first split the text files into sentences and then collected 6 power features by inspecting the list of sentences.
@@ -70,7 +70,7 @@ kable(df2)
 df3 = data.frame(c("sentence_count","sentence_avg_length","4digit_nums","digit_count","question_marks","exclamation_points"),
                 c("Number of sentences","Average length of sentences","Number of 4-digit number","Number of digits","Number of question marks","Number of exclamation points"))
 names(df3) = c("Power Feature", "Definition")
-kable(df3)
+kable(df3,caption="Sentence-based power features")
 ```
 
 (3) N-grams: The N-gram is a sequence of N words sliced from a longer string. The word features we described above are unigrams. It is known that the N-gram-based approach to text categorization is tolerant of textual errors, fast and robust. This approach works very well for language classification (William & John, 1994). In this project, for better prediction, other than unigrams we also included the 4,736 bigram and 497 trigram features. We were able to make a feature matrix of N-grams with the DocumentTermMatrix() command as we did for the word features but by adjusting the command with the N-gram-tokenizer. The trigram features were especially useful for identifying documents that only included Project Gutenberg meta text, because non-literary legal phrases tended to occur frequently in those documents.
