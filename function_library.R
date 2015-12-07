@@ -3,6 +3,15 @@
 library(tm)
 library(SnowballC) # for stemming
 
+# Load these other libraries just in case:
+library(stringi)
+library(stringr)
+library(openNLP)
+library(NLP)
+library(qdap)
+library(dplyr)
+library(foreach)
+
 # For step 1.
 import_text_documents = function(directory = "", doc_dirs = list(no_type=""), file_pattern = "\\.txt$") {
   
