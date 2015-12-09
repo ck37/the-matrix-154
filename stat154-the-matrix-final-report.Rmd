@@ -40,17 +40,11 @@ The DocumentTermMatrix() command is then applied to make a dictionary of every u
 
 We then generated a target vector as a factor with values of “Child”, “History”, “Religion”, and “Science” which are the tags of the texts’ genre.
 
-```{r, echo=FALSE}
-
-```
 ## 3. Unsupervised Feature Filtering
 
 In order to reduce the feature set size and limit overfitting, we tally how many documents use each word. We chose a minimum threshold of 50 documents; any word with less usage was removed from the feature matrix. We selected a relatively low minimum so that the machine learning algorithms could achieve maximum accuracy through a large feature set - aggressive pruning would limit our ability to detect patterns in word usage. Similarly, we chose not to limit on the maximum number of documents using a feature under the theory that words with high document coverage could still provide useful differentiation across categories. Our final word feature matrix contains 22,305 rows and 11,218 word-feature columns.
 
 ![Distribution of word features](visuals/3-feature-filtering-histogram-pruned.png)
-
-```{r, echo=F, message=F, warning=F}
-```
 
 ## 4. Power Feature Extraction
 
